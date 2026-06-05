@@ -19,10 +19,11 @@ The core research question: **do the intangibles actually matter, or are they no
 ```
 Raumdeuter/
 ├── src/
-│   ├── team.py                  # Team data model (Elo, attributes)
-│   ├── match_simulator.py       # Elo-based head-to-head probability + result
-│   ├── tournament_simulator.py  # Full bracket simulation (WIP)
-│   └── main.py                  # Entry point / demo runner
+│   ├── team.py                  # Team + Tournament dataclasses (Elo, climate, geo)
+│   ├── research_modules.py      # Abstract ResearchModule base + 10 concrete modules + ModuleCompositor
+│   ├── match_simulator.py       # MatchResult dataclass + MatchSimulator (Dixon-Coles model)
+│   ├── tournament_simulator.py  # TournamentSimulator: group stage + knockout Monte Carlo
+│   └── main.py                  # Demo runners + 32-team WC 2026 field
 ├── data/                        # Historical match data, team stats (populated separately)
 ├── notebooks/                   # EDA and research notebooks
 ├── tests/
@@ -38,43 +39,86 @@ Raumdeuter/
 
 ```bash
 # Clone and set up environment
-git clone <repo-url>
+git clone https://github.com/aabu4537/raumdeuter.git
 cd Raumdeuter
 python -m venv venv
 source venv/bin/activate       # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# Run a basic head-to-head Monte Carlo simulation
-cd src
-python main.py
+# Run the demo
+python src/main.py
 ```
 
 Example output:
 ```
-{'France': 423, 'Argentina': 577}
+=== Head-to-Head: Argentina vs France (10,000 match simulations) ===
+
+  Argentina win : 50.7%
+  Draw          : 16.6%
+  France win    : 32.8%
+
+=== Module Score Breakdown: Top 4 Teams ===
+
+  Module                           Argentina        France       England        Brazil
+  ------------------------------------------------------------------------------------
+  climate_adaptation                    34.0          27.3          23.6          49.4
+  tournament_resilience                 65.0          65.7          44.7          49.9
+  tournament_dna                        64.0          60.0          54.0          48.0
+  leadership_stability                 100.0          77.5          67.9          50.4
+  squad_fatigue                         49.3          48.7          50.0          36.0
+  injury_impact                        100.0          92.0         100.0         100.0
+
+  Composite scores:
+    Argentina        58.9
+    France           53.0
+    England          48.6
+    Brazil           47.7
+
+=== Elo-only vs Module-adjusted Win Probability (Argentina vs Brazil) ===
+
+  Elo-only P(Argentina wins): 65.3%
+  Module-adjusted P(Argentina wins): 55.4%
+  Delta: -9.9%
 ```
 
-This runs 1,000 simulated matches between France (Elo 2100) and Argentina (Elo 2150) using the standard Elo win-probability formula. Argentina wins ~57.7% — consistent with their rating advantage.
+The -9.9% delta on the last line is the core research output: climate adaptation and squad fatigue drag Argentina's Elo-implied edge down significantly against a Brazil side more accustomed to South American conditions.
 
 ---
 
 ## How the simulation works
 
-### Match probability (current)
+### Match model — Dixon-Coles bivariate Poisson
 
-Uses the standard Elo expected-score formula:
+Each team's Elo is converted to a Poisson goal-rate parameter λ:
 
 ```
-P(A beats B) = 1 / (1 + 10^((Elo_B - Elo_A) / 400))
+λ = exp((Elo - 1800) / 500) × 1.25
 ```
 
-Implemented in [src/match_simulator.py](src/match_simulator.py).
+If research module scores are enabled, λ is adjusted by a weighted composite:
 
-### Monte Carlo tournament simulation (roadmap)
+```
+λ_adjusted = λ × (1 + (module_avg - 0.5) × module_weight)
+```
 
-Run the full 48-team, 64-match World Cup bracket `n` times (default 100,000). Aggregate win/finalist/semifinal counts to produce calibrated probabilities. The simulation is embarrassingly parallel — each run is independent, so it scales linearly with worker count.
+Goals are sampled from the joint distribution with the Dixon-Coles correction applied to low-scoring results (0-0, 1-0, 0-1, 1-1), which standard Poisson underestimates in football. Knockout draws go to extra time (30% rate) and then penalties (50/50).
 
-Planned match model upgrade: **Dixon-Coles bivariate Poisson**, which corrects standard Poisson's underestimation of low-scoring results (0-0, 1-0, 0-1) common in knockout football.
+Implemented in [src/match_simulator.py](src/match_simulator.py) as the `MatchSimulator` class.
+
+### Monte Carlo tournament simulation
+
+Runs the full 32-team, 64-match World Cup bracket `n` times. Each simulation:
+
+1. Randomly draws 32 teams into 8 groups of 4
+2. Simulates all 6 round-robin matches per group (points, goal difference, goals scored for tiebreaking)
+3. Top 2 from each group advance — 16 qualifiers into the knockout bracket
+4. Simulates R16 → QF → SF → Final with extra time and penalties
+
+Aggregates champion/finalist/semifinalist counts across all runs to produce calibrated probabilities. The simulation is embarrassingly parallel — each run is independent, so `TournamentSimulator` distributes work across CPU cores via `ProcessPoolExecutor`.
+
+Research module scores are pre-computed once before the simulation loop (O(n_teams)), not recalculated per match (which would be O(n_simulations × n_matches)).
+
+Implemented in [src/tournament_simulator.py](src/tournament_simulator.py).
 
 ---
 
@@ -157,13 +201,13 @@ PostgreSQL schema with tables for `teams`, `tournaments`, `matches`, `research_s
 
 ## ML roadmap
 
-| Phase | Approach |
-|-------|----------|
-| 1 (current) | Monte Carlo + hand-engineered Elo module |
-| 2 | Module scores as features in XGBoost; SHAP values to identify which modules add real lift |
-| 3 | Neural network replacing Dixon-Coles, trained on StatsBomb event data |
-| 4 | LSTM/Transformer on match sequences to capture momentum and fatigue accumulation |
-| 5 | Causal inference layer for counterfactual simulation ("what if Neymar was fit in 2014?") |
+| Phase | Status | Approach |
+|-------|--------|----------|
+| 1 | **Done** | Dixon-Coles bivariate Poisson + 10 research modules + parallel Monte Carlo bracket |
+| 2 | Planned | Module scores as features in XGBoost; SHAP values to identify which modules add real lift |
+| 3 | Planned | Neural network replacing Dixon-Coles, trained on StatsBomb event data |
+| 4 | Planned | LSTM/Transformer on match sequences to capture momentum and fatigue accumulation |
+| 5 | Planned | Causal inference layer for counterfactual simulation ("what if Neymar was fit in 2014?") |
 
 ---
 
@@ -187,4 +231,11 @@ PostgreSQL schema with tables for `teams`, `tournaments`, `matches`, `research_s
 
 ## Status
 
-Early development. The Elo simulator and Monte Carlo loop are working. Research modules, tournament bracket simulation, FastAPI layer, and database integration are in progress.
+**Phase 1 complete.** The full OOP simulation stack is working end-to-end:
+
+- `Team` / `Tournament` dataclasses with climate and geo attributes
+- 10 composable research modules with a shared abstract base class
+- `MatchSimulator` with Dixon-Coles bivariate Poisson, extra time, and penalties
+- `TournamentSimulator` with full group stage + knockout bracket, parallel Monte Carlo
+
+**Up next:** FastAPI layer, PostgreSQL schema + real historical data ingestion, and statistical validation (Brier Score comparison of module configs against historical WC outcomes).
