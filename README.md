@@ -12,6 +12,8 @@ Most World Cup prediction models lean on FIFA rankings or Elo ratings and call i
 
 The core research question: **do the intangibles actually matter, or are they noise?**
 
+As the 2026 tournament runs, Raumdeuter ingests live match results, updates team Elo ratings after every game, and re-runs simulations so every prediction reflects the tournament in its current state.
+
 ---
 
 ## Project structure
@@ -20,17 +22,22 @@ The core research question: **do the intangibles actually matter, or are they no
 Raumdeuter/
 ├── src/
 │   ├── team.py                  # Team + Tournament dataclasses (Elo, climate, geo)
-│   ├── research_modules.py      # Abstract ResearchModule base + 10 concrete modules + ModuleCompositor
-│   ├── match_simulator.py       # MatchResult dataclass + MatchSimulator (Dixon-Coles model)
-│   ├── tournament_simulator.py  # TournamentSimulator: group stage + knockout Monte Carlo
-│   ├── ml_model.py              # XGBoostMatchPredictor + FeatureBuilder + training data generator
-│   ├── shap_analyzer.py         # SHAPAnalyzer: per-feature and per-module lift tables
-│   ├── validation.py            # ModelValidator: k-fold Brier Score comparison across module configs
-│   └── main.py                  # Demo runners + 32-team WC 2026 field
-├── data/                        # Historical match data, team stats (populated separately)
-├── notebooks/                   # EDA and research notebooks
+│   ├── research_modules.py      # 10 research modules + ModuleCompositor
+│   ├── match_simulator.py       # Dixon-Coles bivariate Poisson match model
+│   ├── tournament_simulator.py  # Full group stage + knockout Monte Carlo
+│   ├── ml_model.py              # XGBoostMatchPredictor + FeatureBuilder
+│   ├── shap_analyzer.py         # SHAP module lift analysis
+│   ├── validation.py            # k-fold Brier Score validation
+│   ├── data_ingestion.py        # StatsBomb historical WC data pipeline
+│   ├── live_ingestion.py        # football-data.org live result ingestion + Elo updates
+│   ├── api.py                   # FastAPI REST server
+│   └── main.py                  # CLI runner + 32-team WC 2026 field
+├── data/
+│   └── team_histories.json      # Cached StatsBomb metrics (auto-generated)
+├── notebooks/
 ├── tests/
 ├── requirements.txt
+├── .env                         # FD_API_KEY (not committed)
 └── README.md
 ```
 
@@ -41,7 +48,6 @@ Raumdeuter/
 **Prerequisites:** Python 3.9+
 
 ```bash
-# Clone and set up environment
 git clone https://github.com/aabu4537/raumdeuter.git
 cd Raumdeuter
 python -m venv venv
@@ -50,44 +56,105 @@ pip install -r requirements.txt
 
 # macOS only — XGBoost requires OpenMP
 brew install libomp
+```
 
-# Run the demo
+### Run the CLI predictor
+
+```bash
 python src/main.py
 ```
 
-Example output:
-```
-=== Head-to-Head: Argentina vs France (10,000 match simulations) ===
+Prompts you to pick two teams, then prints head-to-head win probabilities, module score breakdowns, and XGBoost predictions with SHAP attribution.
 
-  Argentina win : 50.7%
-  Draw          : 16.6%
-  France win    : 32.8%
+### Run the API server
 
-=== Module Score Breakdown: Top 4 Teams ===
-
-  Module                           Argentina        France       England        Brazil
-  ------------------------------------------------------------------------------------
-  climate_adaptation                    34.0          27.3          23.6          49.4
-  tournament_resilience                 65.0          65.7          44.7          49.9
-  tournament_dna                        64.0          60.0          54.0          48.0
-  leadership_stability                 100.0          77.5          67.9          50.4
-  squad_fatigue                         49.3          48.7          50.0          36.0
-  injury_impact                        100.0          92.0         100.0         100.0
-
-  Composite scores:
-    Argentina        58.9
-    France           53.0
-    England          48.6
-    Brazil           47.7
-
-=== Elo-only vs Module-adjusted Win Probability (Argentina vs Brazil) ===
-
-  Elo-only P(Argentina wins): 65.3%
-  Module-adjusted P(Argentina wins): 55.4%
-  Delta: -9.9%
+```bash
+uvicorn api:app --app-dir src --reload
 ```
 
-The -9.9% delta on the last line is the core research output: climate adaptation and squad fatigue drag Argentina's Elo-implied edge down significantly against a Brazil side more accustomed to South American conditions.
+Then open **http://localhost:8000/docs** for the interactive UI.
+
+---
+
+## REST API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/teams` | All 32 teams with current Elo (live-adjusted during tournament) |
+| `POST` | `/predict` | XGBoost 3-way match probabilities + module delta vs Elo baseline |
+| `POST` | `/simulate` | Monte Carlo head-to-head (configurable n\_sims, knockout flag) |
+| `GET` | `/modules` | Per-module score breakdown for a matchup |
+| `GET` | `/state` | Live tournament state: Elo changes + recent results |
+| `POST` | `/ingest` | Pull latest results from football-data.org and update Elos |
+
+### Example — predict a matchup
+
+```bash
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"home": "Argentina", "away": "France"}'
+```
+
+```json
+{
+  "home_team": "Argentina",
+  "away_team": "France",
+  "home_elo": 2150,
+  "away_elo": 2100,
+  "home_win": 0.5358,
+  "draw": 0.2836,
+  "away_win": 0.1805,
+  "elo_home_win": 0.5715,
+  "module_delta": -0.0356
+}
+```
+
+`module_delta` is the XGBoost win probability minus the raw Elo win probability — positive means the research modules favour this team beyond what Elo predicts.
+
+### Example — Monte Carlo simulation
+
+```bash
+curl -X POST http://localhost:8000/simulate \
+  -H "Content-Type: application/json" \
+  -d '{"home": "Morocco", "away": "Brazil", "n_sims": 5000, "knockout": true}'
+```
+
+---
+
+## Live data ingestion
+
+Raumdeuter uses two data layers:
+
+### Historical (pre-tournament) — StatsBomb
+
+On first run, `data_ingestion.py` fetches all men's World Cup data from the [StatsBomb open dataset](https://github.com/statsbomb/open-data) and computes per-team metrics for the research modules:
+
+- Comeback win rates, penalty shootout records (TournamentResilienceRating)
+- Late goals, wins from behind (PressurePerformanceIndex)
+- Pressing intensity, ball recoveries, progressive carries per 90 (InvisibleImpactScore)
+- Tournament round progression vs expected (TournamentDNAScore)
+
+Results cache to `data/team_histories.json` — subsequent starts are instant.
+
+### Live (during tournament) — football-data.org
+
+`live_ingestion.py` pulls finished WC 2026 matches from [football-data.org](https://www.football-data.org) and applies Elo updates (K=40) after every result. The API reads live Elos from `data/tournament_state.json` automatically — no server restart needed.
+
+**Setup:**
+
+1. Get a free API key at https://www.football-data.org/client/register
+2. Add it to `.env`:
+   ```
+   FD_API_KEY=your_key_here
+   ```
+3. Trigger an update:
+   ```bash
+   # via CLI
+   python src/live_ingestion.py
+
+   # via API
+   curl -X POST http://localhost:8000/ingest
+   ```
 
 ---
 
@@ -107,30 +174,11 @@ If research module scores are enabled, λ is adjusted by a weighted composite:
 λ_adjusted = λ × (1 + (module_avg - 0.5) × module_weight)
 ```
 
-Goals are sampled from the joint distribution with the Dixon-Coles correction applied to low-scoring results (0-0, 1-0, 0-1, 1-1), which standard Poisson underestimates in football. Knockout draws go to extra time (30% rate) and then penalties (50/50).
-
-Implemented in [src/match_simulator.py](src/match_simulator.py) as the `MatchSimulator` class.
-
-### Monte Carlo tournament simulation
-
-Runs the full 32-team, 64-match World Cup bracket `n` times. Each simulation:
-
-1. Randomly draws 32 teams into 8 groups of 4
-2. Simulates all 6 round-robin matches per group (points, goal difference, goals scored for tiebreaking)
-3. Top 2 from each group advance — 16 qualifiers into the knockout bracket
-4. Simulates R16 → QF → SF → Final with extra time and penalties
-
-Aggregates champion/finalist/semifinalist counts across all runs to produce calibrated probabilities. The simulation is embarrassingly parallel — each run is independent, so `TournamentSimulator` distributes work across CPU cores via `ProcessPoolExecutor`.
-
-Research module scores are pre-computed once before the simulation loop (O(n_teams)), not recalculated per match (which would be O(n_simulations × n_matches)).
-
-Implemented in [src/tournament_simulator.py](src/tournament_simulator.py).
+Goals are sampled from the joint distribution with the Dixon-Coles correction applied to low-scoring results (0-0, 1-0, 0-1, 1-1), which standard Poisson underestimates in football. Knockout draws go to extra time (30% rate) then penalties (50/50).
 
 ### XGBoost match predictor + SHAP analysis
 
-After the simulation layer, a second model answers a different question: **which features actually drive the predictions?**
-
-`XGBoostMatchPredictor` is trained on feature vectors built from each team's Elo and module scores:
+`XGBoostMatchPredictor` is trained on feature vectors built from Elo and module scores:
 
 ```
 [elo_diff, home_climate, away_climate, climate_delta,
@@ -138,110 +186,31 @@ After the simulation layer, a second model answers a different question: **which
  home_composite, away_composite, composite_delta]
 ```
 
-Training data is generated by running Dixon-Coles simulations across the 32-team field — each simulated match outcome becomes a labeled training sample. XGBoost then learns which features best predict those outcomes.
-
-`SHAPAnalyzer` computes SHAP values (TreeExplainer) and surfaces a **module lift table**:
+`SHAPAnalyzer` computes SHAP values (TreeExplainer) and surfaces a module lift table showing which research modules add genuine predictive value versus noise on top of Elo:
 
 ```
 Source                   SHAP    % Total  Verdict
 climate_adaptation       0.063    63.3%   significant lift
 elo_baseline             0.026    26.5%   baseline
 tournament_resilience    0.000     0.0%   noise
-tournament_dna           0.000     0.0%   noise
 ```
-
-`ModelValidator` runs k-fold cross-validation comparing Brier Scores across module configs — from elo-only up to all 10 modules — to quantify which combinations genuinely improve calibration.
-
-Implemented in [src/ml_model.py](src/ml_model.py), [src/shap_analyzer.py](src/shap_analyzer.py), [src/validation.py](src/validation.py).
 
 ---
 
 ## Research modules
 
-Each module is a hypothesis: does this factor, when added to Elo, improve prediction accuracy? Modules are composable — you can run the simulation with any combination and compare Brier Scores.
-
 | Module | Hypothesis |
 |--------|-----------|
-| **Climate Adaptation Index (CAI)** | Teams playing far from their home climate (temperature, humidity, altitude) underperform relative to Elo |
-| **Tournament Resilience Rating (TRR)** | Historical comeback wins, penalty shootout record, and underdog victories predict future clutch performance |
-| **Pressure Performance Index (PPI)** | Teams with high-pressure club environments (Champions League knockouts) handle tournament pressure better |
-| **Tournament DNA Score** | Some teams systematically outperform their pre-tournament Elo — a persistent "big tournament" effect |
-| **Chaos Tolerance Rating** | Teams that maintain cohesion after red cards, injuries, and conceding first |
-| **Leadership Stability Score** | Experienced captains and stable coaching tenures correlate with tournament overperformance |
-| **Tactical Flexibility Index** | Teams that can shift formations mid-tournament adapt to bracket variance better |
-| **Invisible Impact Score** | Off-ball contributions (pressing, recoveries, space creation) not captured in goals/assists |
-| **Squad Fatigue Model** | Players with high club-season minutes entering a tournament show elevated injury risk |
-| **Injury Impact Estimator** | Counterfactual win probability with and without key players |
-
-### Validation methodology
-
-With only ~22 World Cups in the data, overfitting is the primary risk. The platform uses:
-
-- **Leave-one-tournament-out cross-validation** — train on WC 1990–2018, test on 2022, rotate
-- **Brier Score** as the primary metric (lower = better calibrated probabilities)
-- **Permutation testing** — shuffle module scores, re-run 1,000 times, confirm real scores beat shuffled baseline at p < 0.05
-- **Bootstrapped confidence intervals** on all reported probabilities
-
----
-
-## Architecture (planned)
-
-The full platform is designed as a microservices system with event-driven communication:
-
-```
-Data Sources (StatsBomb, Transfermarkt, OpenWeather)
-        ↓
-  Kafka (ingestion.raw)
-        ↓
-  Normalization Service → PostgreSQL
-        ↓
-  Research Module Engine → Redis cache
-        ↓
-  Monte Carlo Workers (parallel, auto-scaling)
-        ↓
-  FastAPI → Dashboard / REST clients
-```
-
-**Key design decisions:**
-- All inter-service communication through Kafka — no direct service-to-service HTTP in the critical path, enabling replay and fault isolation
-- Research scores pre-computed and cached; simulation workers read from cache, not DB
-- Simulation results cached in Redis for 24h — identical configs served instantly
-- Spot instances for simulation workers (jobs are checkpointable to S3)
-
----
-
-## API (planned)
-
-```
-GET  /teams/{id}/scores              Research module scores for a team
-POST /simulations                    Trigger a new simulation run
-GET  /simulations/{run_id}           Poll status and results
-GET  /analytics/topk/champions       Top-K championship favorites
-GET  /research/climate/{team_id}     Climate Adaptation Index breakdown
-GET  /injuries/{team_id}             Current squad fatigue snapshot
-```
-
-Full spec covers versioned REST endpoints, cursor-based pagination, JWT auth (RS256), Redis rate limiting (sliding window), and CloudFront CDN caching for simulation results.
-
----
-
-## Database
-
-PostgreSQL schema with tables for `teams`, `tournaments`, `matches`, `research_scores`, `simulation_runs`, `simulation_results`, `player_fatigue`, and `notification_subscriptions`.
-
-`research_scores` is a wide table keyed by `(team_id, tournament_id)` — all module scores in one row. This beats EAV for analytic query performance at the cost of schema migrations when modules are added.
-
----
-
-## ML roadmap
-
-| Phase | Status | Approach |
-|-------|--------|----------|
-| 1 | **Done** | Dixon-Coles bivariate Poisson + 10 research modules + parallel Monte Carlo bracket |
-| 2 | **Done** | XGBoost on module-enriched features + SHAP module lift analysis + k-fold Brier Score validation |
-| 3 | Planned | Neural network replacing Dixon-Coles, trained on StatsBomb event data |
-| 4 | Planned | LSTM/Transformer on match sequences to capture momentum and fatigue accumulation |
-| 5 | Planned | Causal inference layer for counterfactual simulation ("what if Neymar was fit in 2014?") |
+| **Climate Adaptation Index** | Teams playing far from their home climate underperform relative to Elo |
+| **Tournament Resilience Rating** | Comeback wins, shootout record, and underdog victories predict clutch performance |
+| **Pressure Performance Index** | High-pressure club environments translate to tournament composure |
+| **Tournament DNA Score** | Some teams systematically outperform their pre-tournament Elo |
+| **Chaos Tolerance Rating** | Teams that maintain cohesion after red cards and conceding first |
+| **Leadership Stability Score** | Experienced captains and stable coaching tenures correlate with overperformance |
+| **Tactical Flexibility Index** | Formation shifts mid-tournament signal adaptability |
+| **Invisible Impact Score** | Pressing, ball recoveries, and progressive carries not captured in goals |
+| **Squad Fatigue Model** | High pre-tournament club workload elevates injury and underperformance risk |
+| **Injury Impact Estimator** | Win probability drop from key player absences |
 
 ---
 
@@ -250,32 +219,30 @@ PostgreSQL schema with tables for `teams`, `tournaments`, `matches`, `research_s
 | Package | Purpose |
 |---------|---------|
 | `numpy`, `scipy` | Statistical simulation, Poisson distributions |
-| `pandas` | Data manipulation and historical dataset handling |
-| `matplotlib` | Visualization and result plotting |
-| `xgboost` | Match outcome predictor (Phase 2) |
-| `shap` | Feature importance and module lift analysis (Phase 2) |
-| `scikit-learn` | K-fold cross-validation for Brier Score comparison |
-| `fastapi`, `uvicorn` | REST API server (planned) |
+| `pandas` | Data manipulation |
+| `xgboost` | Match outcome predictor |
+| `shap` | Feature importance and module lift analysis |
+| `scikit-learn` | k-fold cross-validation, Brier Score |
+| `statsbombpy` | Historical WC event data |
+| `httpx` | HTTP client for football-data.org API |
+| `fastapi`, `uvicorn` | REST API server |
 | `pydantic` | Request/response validation |
+
+---
+
+## ML roadmap
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| 1 | ✅ Done | Dixon-Coles + 10 research modules + parallel Monte Carlo bracket |
+| 2 | ✅ Done | XGBoost on module-enriched features + SHAP lift analysis + Brier Score validation |
+| 3 | ✅ Done | FastAPI REST layer + StatsBomb historical data ingestion |
+| 4 | ✅ Done | Live result ingestion + real-time Elo updates (football-data.org) |
+| 5 | In progress | GitHub Actions cron + phone notifications on upset detection |
+| 6 | Planned | Deep match analysis: head-to-head history, xG form, tactical context as XGBoost features |
 
 ---
 
 ## Name
 
 *Raumdeuter* was Jürgen Klinsmann's term for Thomas Müller — a player who couldn't be marked because he occupied space rather than positions. The name captures what this project is trying to do: find the analytical spaces that position-based (rankings-based) models miss.
-
----
-
-## Status
-
-**Phases 1 and 2 complete.**
-
-- `Team` / `Tournament` dataclasses with climate and geo attributes
-- 10 composable research modules with a shared abstract base class
-- `MatchSimulator` with Dixon-Coles bivariate Poisson, extra time, and penalties
-- `TournamentSimulator` with full group stage + knockout bracket, parallel Monte Carlo
-- `XGBoostMatchPredictor` trained on module-enriched feature vectors
-- `SHAPAnalyzer` surfacing which modules add real lift vs Elo noise
-- `ModelValidator` with k-fold Brier Score comparison across module configs
-
-**Up next:** FastAPI layer, PostgreSQL schema + real historical data ingestion, single-match deep analysis (head-to-head, tactical matchup context), and phone notifications for tournament upsets.
