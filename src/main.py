@@ -121,162 +121,143 @@ TEAM_HISTORIES: dict[str, dict] = {
 
 
 # ---------------------------------------------------------------------------
-# Demo runners
+# Team picker
 # ---------------------------------------------------------------------------
 
-def demo_head_to_head() -> None:
-    print("\n=== Head-to-Head: Argentina vs France (10,000 match simulations) ===\n")
+def pick_teams() -> tuple[Team, Team]:
+    print("\n" + "=" * 50)
+    print("  RAUMDEUTER — Head-to-Head Predictor")
+    print("=" * 50)
+    print("\n  Available teams:\n")
+    for i, team in enumerate(TEAMS, 1):
+        print(f"  {i:>2}. {team.name:<16} (Elo {team.elo:.0f})")
 
-    compositor = ModuleCompositor([
-        ClimateAdaptationIndex(),
-        TournamentResilienceRating(),
-        TournamentDNAScore(),
-        LeadershipStabilityScore(),
-        SquadFatigueModel(),
-        InjuryImpactEstimator(),
-    ])
+    def pick(prompt: str, exclude: Team | None = None) -> Team:
+        while True:
+            raw = input(f"\n{prompt}").strip()
+            # Accept number
+            if raw.isdigit():
+                idx = int(raw) - 1
+                if 0 <= idx < len(TEAMS):
+                    team = TEAMS[idx]
+                    if exclude and team == exclude:
+                        print("  Pick a different team.")
+                        continue
+                    return team
+            # Accept partial name (case-insensitive)
+            matches = [t for t in TEAMS if raw.lower() in t.name.lower()]
+            if len(matches) == 1:
+                if exclude and matches[0] == exclude:
+                    print("  Pick a different team.")
+                    continue
+                return matches[0]
+            if len(matches) > 1:
+                print(f"  Multiple matches: {', '.join(t.name for t in matches)}. Be more specific.")
+                continue
+            print("  Team not found. Try a number from the list or part of the name.")
+
+    team_a = pick("  Select home team (number or name): ")
+    print(f"  → {team_a.name} selected.")
+    team_b = pick("  Select away team (number or name): ", exclude=team_a)
+    print(f"  → {team_b.name} selected.")
+    return team_a, team_b
+
+
+# ---------------------------------------------------------------------------
+# Analysis runners
+# ---------------------------------------------------------------------------
+
+_COMPOSITOR = ModuleCompositor([
+    ClimateAdaptationIndex(),
+    TournamentResilienceRating(),
+    PressurePerformanceIndex(),
+    TournamentDNAScore(),
+    LeadershipStabilityScore(),
+    SquadFatigueModel(),
+    InjuryImpactEstimator(),
+])
+
+
+def run_head_to_head(team_a: Team, team_b: Team) -> None:
+    print(f"\n=== Head-to-Head: {team_a.name} vs {team_b.name} (2,000 simulations) ===\n")
+
     match_sim = MatchSimulator()
+    a_scores = _COMPOSITOR.compute_all(team_a, WC_2026, TEAM_HISTORIES.get(team_a.name))
+    b_scores = _COMPOSITOR.compute_all(team_b, WC_2026, TEAM_HISTORIES.get(team_b.name))
 
-    argentina = next(t for t in TEAMS if t.name == "Argentina")
-    france = next(t for t in TEAMS if t.name == "France")
-
-    arg_scores = compositor.compute_all(argentina, WC_2026, TEAM_HISTORIES.get("Argentina"))
-    fra_scores = compositor.compute_all(france, WC_2026, TEAM_HISTORIES.get("France"))
-
-    results: dict[str, int] = {"Argentina": 0, "France": 0, "Draw": 0}
-    for _ in range(10_000):
-        result = match_sim.simulate(argentina, france, arg_scores, fra_scores, knockout=False)
+    counts: dict[str, int] = {team_a.name: 0, team_b.name: 0, "Draw": 0}
+    for _ in range(2_000):
+        result = match_sim.simulate(team_a, team_b, a_scores, b_scores, knockout=False)
         key = result.winner.name if result.winner else "Draw"
-        results[key] += 1
+        counts[key] += 1
 
-    total = 10_000
-    print(f"  Argentina win : {results['Argentina'] / total:.1%}")
-    print(f"  Draw          : {results['Draw'] / total:.1%}")
-    print(f"  France win    : {results['France'] / total:.1%}")
+    total = 2_000
+    elo_p = match_sim.elo_win_probability(team_a, team_b)
+    print(f"  {team_a.name} win  : {counts[team_a.name] / total:.1%}  (Elo-only: {elo_p:.1%})")
+    print(f"  Draw         : {counts['Draw'] / total:.1%}")
+    print(f"  {team_b.name} win  : {counts[team_b.name] / total:.1%}  (Elo-only: {1 - elo_p:.1%})")
+    print(f"\n  Module delta vs Elo: {(counts[team_a.name] / total) - elo_p:+.1%} for {team_a.name}")
 
 
-def demo_module_breakdown() -> None:
-    print("\n=== Module Score Breakdown: Top 4 Teams ===\n")
+def run_module_breakdown(team_a: Team, team_b: Team) -> None:
+    print(f"\n=== Module Score Breakdown: {team_a.name} vs {team_b.name} ===\n")
 
-    compositor = ModuleCompositor([
-        ClimateAdaptationIndex(),
-        TournamentResilienceRating(),
-        PressurePerformanceIndex(),
-        TournamentDNAScore(),
-        LeadershipStabilityScore(),
-        SquadFatigueModel(),
-        InjuryImpactEstimator(),
-    ])
-
-    top4 = [t for t in TEAMS if t.name in ("Argentina", "France", "England", "Brazil")]
+    teams = [team_a, team_b]
     col_w = 28
-
-    header = f"  {'Module':<{col_w}}" + "".join(f"{t.name:>14}" for t in top4)
+    header = f"  {'Module':<{col_w}}" + "".join(f"{t.name:>16}" for t in teams)
     print(header)
-    print("  " + "-" * (col_w + 14 * len(top4)))
+    print("  " + "-" * (col_w + 16 * len(teams)))
 
     all_scores = {
-        t.name: compositor.compute_all(t, WC_2026, TEAM_HISTORIES.get(t.name))
-        for t in top4
+        t.name: _COMPOSITOR.compute_all(t, WC_2026, TEAM_HISTORIES.get(t.name))
+        for t in teams
     }
 
-    module_names = list(next(iter(all_scores.values())).keys())
-    for module in module_names:
+    for module in list(all_scores[team_a.name].keys()):
         row = f"  {module:<{col_w}}"
-        for team in top4:
-            row += f"{all_scores[team.name][module]:>14.1f}"
+        for t in teams:
+            row += f"{all_scores[t.name][module]:>16.1f}"
         print(row)
 
-    print("  " + "-" * (col_w + 14 * len(top4)))
-    for team in top4:
-        composite = compositor.composite_score(team, WC_2026, TEAM_HISTORIES.get(team.name))
-        print(f"  {'composite':<{col_w}}{composite:>14.1f}" if team == top4[0]
-              else f"  {'':<{col_w}}{composite:>14.1f}")
-
-    print("\n  Composite scores:")
-    for team in top4:
-        composite = compositor.composite_score(team, WC_2026, TEAM_HISTORIES.get(team.name))
-        print(f"    {team.name:<16} {composite:.1f}")
+    print("  " + "-" * (col_w + 16 * len(teams)))
+    row = f"  {'composite':<{col_w}}"
+    for t in teams:
+        composite = _COMPOSITOR.composite_score(t, WC_2026, TEAM_HISTORIES.get(t.name))
+        row += f"{composite:>16.1f}"
+    print(row)
 
 
-def demo_elo_vs_modules() -> None:
-    print("\n=== Elo-only vs Module-adjusted Win Probability (Argentina vs Brazil) ===\n")
+def run_xgboost_prediction(team_a: Team, team_b: Team) -> None:
+    print(f"\n=== XGBoost Prediction: {team_a.name} vs {team_b.name} ===\n")
 
-    argentina = next(t for t in TEAMS if t.name == "Argentina")
-    brazil = next(t for t in TEAMS if t.name == "Brazil")
-    match_sim = MatchSimulator()
-
-    elo_p = match_sim.elo_win_probability(argentina, brazil)
-    print(f"  Elo-only P(Argentina wins): {elo_p:.1%}")
-
-    compositor = ModuleCompositor([
-        ClimateAdaptationIndex(),
-        TournamentResilienceRating(),
-        TournamentDNAScore(),
-        SquadFatigueModel(),
-    ])
-    arg_scores = compositor.compute_all(argentina, WC_2026, TEAM_HISTORIES.get("Argentina"))
-    bra_scores = compositor.compute_all(brazil, WC_2026, TEAM_HISTORIES.get("Brazil"))
-
-    wins = 0
-    n = 10_000
-    for _ in range(n):
-        result = match_sim.simulate(argentina, brazil, arg_scores, bra_scores)
-        if result.winner == argentina:
-            wins += 1
-    print(f"  Module-adjusted P(Argentina wins): {wins / n:.1%}")
-    print(f"  Delta: {(wins / n) - elo_p:+.1%}")
-
-
-def demo_phase2_xgboost_shap() -> None:
-    print("\n=== Phase 2: XGBoost + SHAP — Which Modules Add Real Lift? ===")
-
-    compositor = ModuleCompositor([
-        ClimateAdaptationIndex(),
-        TournamentResilienceRating(),
-        PressurePerformanceIndex(),
-        TournamentDNAScore(),
-        LeadershipStabilityScore(),
-        SquadFatigueModel(),
-        InjuryImpactEstimator(),
-    ])
-
-    print("\n  Generating 5,000 training samples via Dixon-Coles simulation...")
-    samples = generate_training_data(TEAMS, WC_2026, compositor, TEAM_HISTORIES, n_samples=5_000)
-
+    print("  Training XGBoost on 2,000 simulated matches...")
+    samples = generate_training_data(TEAMS, WC_2026, _COMPOSITOR, TEAM_HISTORIES, n_samples=2_000)
     model = XGBoostMatchPredictor()
     model.train(samples)
-    print("  XGBoost trained.\n")
 
-    # --- Single match prediction ---
-    argentina = next(t for t in TEAMS if t.name == "Argentina")
-    france = next(t for t in TEAMS if t.name == "France")
-    arg_scores = compositor.compute_all(argentina, WC_2026, TEAM_HISTORIES.get("Argentina"))
-    fra_scores = compositor.compute_all(france, WC_2026, TEAM_HISTORIES.get("France"))
+    a_scores = _COMPOSITOR.compute_all(team_a, WC_2026, TEAM_HISTORIES.get(team_a.name))
+    b_scores = _COMPOSITOR.compute_all(team_b, WC_2026, TEAM_HISTORIES.get(team_b.name))
+    probs = model.predict_proba(team_a.elo, team_b.elo, a_scores, b_scores)
 
-    probs = model.predict_proba(argentina.elo, france.elo, arg_scores, fra_scores)
-    print("  Argentina vs France (XGBoost probabilities):")
-    for outcome, p in probs.items():
-        print(f"    {outcome:<12} {p:.1%}")
+    print(f"\n  {'Outcome':<14} {'Probability':>12}")
+    print("  " + "-" * 28)
+    labels = {
+        "home_win": f"{team_a.name} win",
+        "draw": "Draw",
+        "away_win": f"{team_b.name} win",
+    }
+    for key, label in labels.items():
+        print(f"  {label:<14} {probs[key]:>11.1%}")
 
-    # --- SHAP: which modules matter? ---
     analyzer = SHAPAnalyzer(model)
-    lift_table = analyzer.module_lift_table(samples)
-    print("\n  Module lift table (% of total SHAP):")
-    print(f"  {'Source':<30} {'SHAP':>6}  {'% Total':>8}  Verdict")
-    print("  " + "-" * 58)
-    for _, row in lift_table.iterrows():
-        print(f"  {row['source']:<30} {row['total_shap']:>6.4f}  {row['pct_of_total']:>7.1f}%  {row['verdict']}")
-
-    # --- Brier Score comparison across configs ---
-    print("\n  Brier Score comparison (5-fold CV, 5,000 samples each):")
-    validator = ModelValidator(TEAMS, WC_2026, TEAM_HISTORIES, n_samples=5_000)
-    results = validator.compare_configs(ModelValidator.default_configs())
-    print(f"\n  Best config: {results.iloc[0]['config']}  (Brier={results.iloc[0]['brier_score']})")
+    lift = analyzer.module_lift_table(samples)
+    print(f"\n  Top contributing factors (SHAP):")
+    for _, row in lift[lift["verdict"] != "noise"].iterrows():
+        print(f"    {row['source']:<28} {row['pct_of_total']:>5.1f}%  {row['verdict']}")
 
 
 if __name__ == "__main__":
-    demo_head_to_head()
-    demo_module_breakdown()
-    demo_elo_vs_modules()
-    demo_phase2_xgboost_shap()
+    team_a, team_b = pick_teams()
+    run_head_to_head(team_a, team_b)
+    run_module_breakdown(team_a, team_b)
+    run_xgboost_prediction(team_a, team_b)
