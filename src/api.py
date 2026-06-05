@@ -2,10 +2,12 @@
 Raumdeuter REST API
 
 Endpoints:
-  GET  /teams                     — list all 32 teams with Elo
+  GET  /teams                     — list all 32 teams with current Elo
   POST /predict  {home, away}     — XGBoost 3-way probability
   POST /simulate {home, away, n_sims, knockout} — Monte Carlo head-to-head
   GET  /modules?home=X&away=Y     — per-module score breakdown
+  GET  /state                     — live tournament Elo changes + recent results
+  POST /ingest                    — pull latest results from football-data.org
 
 Run:
   uvicorn api:app --reload --app-dir src
@@ -13,6 +15,8 @@ Run:
 """
 from __future__ import annotations
 
+import dataclasses
+import os
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -28,11 +32,13 @@ from main import TEAMS, WC_2026, _COMPOSITOR, TEAM_HISTORIES  # noqa: E402
 from match_simulator import MatchSimulator  # noqa: E402
 from ml_model import XGBoostMatchPredictor, generate_training_data  # noqa: E402
 from team import Team  # noqa: E402
+from live_ingestion import load_live_elos, fetch_and_update, get_state_summary  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Shared state — initialised once at startup
 # ---------------------------------------------------------------------------
 
+_BASE_ELOS: dict[str, float] = {t.name: t.elo for t in TEAMS}
 _team_map: dict[str, Team] = {t.name.lower(): t for t in TEAMS}
 _match_sim = MatchSimulator()
 _model: XGBoostMatchPredictor | None = None
@@ -50,18 +56,23 @@ def _get_model() -> XGBoostMatchPredictor:
 
 
 def _resolve(name: str) -> Team:
-    team = _team_map.get(name.lower())
-    if team:
-        return team
-    matches = [t for t in TEAMS if name.lower() in t.name.lower()]
-    if len(matches) == 1:
-        return matches[0]
-    if len(matches) > 1:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Ambiguous team name {name!r}: {[t.name for t in matches]}",
-        )
-    raise HTTPException(status_code=404, detail=f"Team not found: {name!r}")
+    """Resolve a team name to a Team object with the current live Elo."""
+    base = _team_map.get(name.lower())
+    if not base:
+        matches = [t for t in TEAMS if name.lower() in t.name.lower()]
+        if len(matches) == 1:
+            base = matches[0]
+        elif len(matches) > 1:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Ambiguous team name {name!r}: {[t.name for t in matches]}",
+            )
+        else:
+            raise HTTPException(status_code=404, detail=f"Team not found: {name!r}")
+
+    live_elos = load_live_elos(_BASE_ELOS)
+    live_elo = live_elos.get(base.name, base.elo)
+    return dataclasses.replace(base, elo=live_elo)
 
 
 # ---------------------------------------------------------------------------
@@ -113,15 +124,48 @@ def root() -> dict[str, Any]:
 
 @app.get("/teams")
 def list_teams() -> list[dict[str, Any]]:
+    live_elos = load_live_elos(_BASE_ELOS)
     return [
         {
             "name": t.name,
-            "elo": t.elo,
+            "elo": round(live_elos.get(t.name, t.elo), 1),
+            "elo_base": t.elo,
+            "elo_delta": round(live_elos.get(t.name, t.elo) - t.elo, 1),
             "fifa_code": t.fifa_code,
             "confederation": t.confederation,
         }
-        for t in sorted(TEAMS, key=lambda t: -t.elo)
+        for t in sorted(TEAMS, key=lambda t: -live_elos.get(t.name, t.elo))
     ]
+
+
+@app.get("/state")
+def tournament_state() -> dict[str, Any]:
+    """Live tournament state: Elo changes since kick-off, recent results."""
+    return get_state_summary(_BASE_ELOS)
+
+
+@app.post("/ingest")
+def ingest() -> dict[str, Any]:
+    """
+    Pull latest finished matches from football-data.org and update Elos.
+    Requires FD_API_KEY environment variable.
+    """
+    api_key = os.environ.get("FD_API_KEY", "")
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="FD_API_KEY environment variable not set. "
+                   "Get a free key at https://www.football-data.org/client/register",
+        )
+    try:
+        new_entries = fetch_and_update(api_key, _BASE_ELOS)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"football-data.org fetch failed: {exc}")
+
+    return {
+        "new_matches": len(new_entries),
+        "results": [e.to_dict() for e in new_entries],
+    }
 
 
 @app.post("/predict")
