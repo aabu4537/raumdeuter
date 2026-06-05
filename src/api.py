@@ -30,6 +30,7 @@ from pydantic import BaseModel, Field
 sys.path.insert(0, str(Path(__file__).parent))
 
 from main import TEAMS, WC_2026, _COMPOSITOR, TEAM_HISTORIES  # noqa: E402
+from tournament_simulator import TournamentSimulator  # noqa: E402
 from match_simulator import MatchSimulator  # noqa: E402
 from ml_model import XGBoostMatchPredictor, generate_training_data  # noqa: E402
 from team import Team  # noqa: E402
@@ -261,6 +262,35 @@ def modules(
         "away_composite": round(_COMPOSITOR.composite_score(away_team, WC_2026, TEAM_HISTORIES.get(away_team.name)), 2),
         "modules": modules_out,
     }
+
+
+@app.get("/tournament")
+def tournament(n_sims: int = Query(300, ge=100, le=1000)) -> dict[str, Any]:
+    """Full WC Monte Carlo — projected win, finalist, and semifinalist probabilities."""
+    live_elos = load_live_elos(_BASE_ELOS)
+    updated_teams = [dataclasses.replace(t, elo=live_elos.get(t.name, t.elo)) for t in TEAMS]
+    sim = TournamentSimulator(team_histories=TEAM_HISTORIES)
+    result = sim.run(WC_2026, updated_teams, n_simulations=n_sims, parallel=False)
+
+    def _prob(counts: dict[str, int], name: str) -> float:
+        return round(counts.get(name, 0) / n_sims, 4)
+
+    teams_out = sorted(
+        [
+            {
+                "team": t.name,
+                "confederation": t.confederation,
+                "elo": round(live_elos.get(t.name, t.elo), 1),
+                "win_probability": _prob(result.champion_counts, t.name),
+                "finalist_probability": _prob(result.finalist_counts, t.name),
+                "semifinalist_probability": _prob(result.semifinalist_counts, t.name),
+            }
+            for t in updated_teams
+        ],
+        key=lambda x: x["win_probability"],
+        reverse=True,
+    )
+    return {"n_simulations": n_sims, "teams": teams_out}
 
 
 @app.get("/analysis")

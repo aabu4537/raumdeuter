@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
+import { Nav } from "@/components/ui/nav";
 
 const API = "http://localhost:8000";
 
@@ -167,20 +167,7 @@ export default function PredictPage() {
 
   return (
     <main className="min-h-screen bg-white dark:bg-neutral-950 pb-24">
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 border-b border-neutral-100 dark:border-neutral-800 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md">
-        <div className="max-w-5xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
-          <Link
-            href="/"
-            className="text-sm font-semibold tracking-tight text-neutral-900 dark:text-white hover:opacity-70 transition-opacity"
-          >
-            ← Raumdeuter
-          </Link>
-          <span className="text-sm text-neutral-400 dark:text-neutral-600">
-            Match Predictor
-          </span>
-        </div>
-      </nav>
+      <Nav />
 
       <div className="max-w-5xl mx-auto px-4 md:px-6 pt-12">
         {/* Header */}
