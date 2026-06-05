@@ -12,6 +12,9 @@ from research_modules import (
     ModuleCompositor,
 )
 from match_simulator import MatchSimulator
+from ml_model import XGBoostMatchPredictor, generate_training_data
+from shap_analyzer import SHAPAnalyzer
+from validation import ModelValidator
 
 # ---------------------------------------------------------------------------
 # Tournament context
@@ -225,7 +228,55 @@ def demo_elo_vs_modules() -> None:
     print(f"  Delta: {(wins / n) - elo_p:+.1%}")
 
 
+def demo_phase2_xgboost_shap() -> None:
+    print("\n=== Phase 2: XGBoost + SHAP — Which Modules Add Real Lift? ===")
+
+    compositor = ModuleCompositor([
+        ClimateAdaptationIndex(),
+        TournamentResilienceRating(),
+        PressurePerformanceIndex(),
+        TournamentDNAScore(),
+        LeadershipStabilityScore(),
+        SquadFatigueModel(),
+        InjuryImpactEstimator(),
+    ])
+
+    print("\n  Generating 5,000 training samples via Dixon-Coles simulation...")
+    samples = generate_training_data(TEAMS, WC_2026, compositor, TEAM_HISTORIES, n_samples=5_000)
+
+    model = XGBoostMatchPredictor()
+    model.train(samples)
+    print("  XGBoost trained.\n")
+
+    # --- Single match prediction ---
+    argentina = next(t for t in TEAMS if t.name == "Argentina")
+    france = next(t for t in TEAMS if t.name == "France")
+    arg_scores = compositor.compute_all(argentina, WC_2026, TEAM_HISTORIES.get("Argentina"))
+    fra_scores = compositor.compute_all(france, WC_2026, TEAM_HISTORIES.get("France"))
+
+    probs = model.predict_proba(argentina.elo, france.elo, arg_scores, fra_scores)
+    print("  Argentina vs France (XGBoost probabilities):")
+    for outcome, p in probs.items():
+        print(f"    {outcome:<12} {p:.1%}")
+
+    # --- SHAP: which modules matter? ---
+    analyzer = SHAPAnalyzer(model)
+    lift_table = analyzer.module_lift_table(samples)
+    print("\n  Module lift table (% of total SHAP):")
+    print(f"  {'Source':<30} {'SHAP':>6}  {'% Total':>8}  Verdict")
+    print("  " + "-" * 58)
+    for _, row in lift_table.iterrows():
+        print(f"  {row['source']:<30} {row['total_shap']:>6.4f}  {row['pct_of_total']:>7.1f}%  {row['verdict']}")
+
+    # --- Brier Score comparison across configs ---
+    print("\n  Brier Score comparison (5-fold CV, 5,000 samples each):")
+    validator = ModelValidator(TEAMS, WC_2026, TEAM_HISTORIES, n_samples=5_000)
+    results = validator.compare_configs(ModelValidator.default_configs())
+    print(f"\n  Best config: {results.iloc[0]['config']}  (Brier={results.iloc[0]['brier_score']})")
+
+
 if __name__ == "__main__":
     demo_head_to_head()
     demo_module_breakdown()
     demo_elo_vs_modules()
+    demo_phase2_xgboost_shap()
