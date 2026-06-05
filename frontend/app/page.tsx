@@ -2,6 +2,7 @@
 
 import { BackgroundPaths } from "@/components/ui/background-paths";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 const features = [
   {
@@ -52,9 +53,7 @@ const endpoints = [
 ] as const;
 
 export default function Home() {
-  const scrollToFeatures = () => {
-    document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
-  };
+  const router = useRouter();
 
   return (
     <main className="min-h-screen bg-white dark:bg-neutral-950">
@@ -62,8 +61,8 @@ export default function Home() {
       <BackgroundPaths
         title="Raumdeuter"
         subtitle="WC 2026 prediction engine — Dixon-Coles, XGBoost, and 10 research modules that go beyond Elo."
-        ctaLabel="See How It Works"
-        onCta={scrollToFeatures}
+        ctaLabel="Predict a Match"
+        onCta={() => router.push("/predict")}
       />
 
       {/* Feature grid */}
