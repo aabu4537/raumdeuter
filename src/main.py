@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from team import Team, Tournament
+from data_ingestion import load_team_histories
 from research_modules import (
     ClimateAdaptationIndex,
     TournamentResilienceRating,
@@ -72,52 +73,11 @@ TEAMS: list[Team] = [
 ]
 
 # ---------------------------------------------------------------------------
-# Historical data for research modules
-# (In production this comes from PostgreSQL via research_scores table)
+# Historical data for research modules — sourced from StatsBomb open WC data.
+# Cached to data/team_histories.json after the first run.
 # ---------------------------------------------------------------------------
 
-TEAM_HISTORIES: dict[str, dict] = {
-    "Argentina": {
-        "comeback_wins": 8, "conceded_first_matches": 12,
-        "shootout_wins": 4, "shootouts": 6,
-        "underdog_wins": 3, "underdog_matches": 5,
-        "finish_round_deltas": [1, 0, 2, 1, 3],
-        "coach_tenure_years": 4.0, "captain_caps": 180,
-        "distinct_formations_per_tournament": 2, "win_rate_after_formation_change": 0.70,
-        "avg_key_player_minutes_last_30_days": 260, "travel_km_last_30_days": 8000,
-        "key_players_injured": 0, "avg_injured_player_importance": 0.0,
-    },
-    "France": {
-        "comeback_wins": 7, "conceded_first_matches": 10,
-        "shootout_wins": 3, "shootouts": 5,
-        "underdog_wins": 4, "underdog_matches": 6,
-        "finish_round_deltas": [1, 2, 0, 1],
-        "coach_tenure_years": 3.0, "captain_caps": 120,
-        "distinct_formations_per_tournament": 3, "win_rate_after_formation_change": 0.65,
-        "avg_key_player_minutes_last_30_days": 280, "travel_km_last_30_days": 7000,
-        "key_players_injured": 1, "avg_injured_player_importance": 0.4,
-    },
-    "Brazil": {
-        "comeback_wins": 9, "conceded_first_matches": 14,
-        "shootout_wins": 2, "shootouts": 6,
-        "underdog_wins": 2, "underdog_matches": 4,
-        "finish_round_deltas": [-1, 0, 1, -1, 0],
-        "coach_tenure_years": 1.5, "captain_caps": 95,
-        "distinct_formations_per_tournament": 2, "win_rate_after_formation_change": 0.55,
-        "avg_key_player_minutes_last_30_days": 300, "travel_km_last_30_days": 12000,
-        "key_players_injured": 0, "avg_injured_player_importance": 0.0,
-    },
-    "England": {
-        "comeback_wins": 5, "conceded_first_matches": 9,
-        "shootout_wins": 2, "shootouts": 7,
-        "underdog_wins": 2, "underdog_matches": 4,
-        "finish_round_deltas": [0, 1, 0, 1, 0],
-        "coach_tenure_years": 2.5, "captain_caps": 110,
-        "distinct_formations_per_tournament": 2, "win_rate_after_formation_change": 0.50,
-        "avg_key_player_minutes_last_30_days": 270, "travel_km_last_30_days": 7000,
-        "key_players_injured": 0, "avg_injured_player_importance": 0.0,
-    },
-}
+TEAM_HISTORIES: dict[str, dict] = load_team_histories()
 
 
 # ---------------------------------------------------------------------------
