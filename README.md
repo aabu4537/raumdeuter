@@ -28,12 +28,19 @@ Raumdeuter/
 │   ├── ml_model.py              # XGBoostMatchPredictor + FeatureBuilder
 │   ├── shap_analyzer.py         # SHAP module lift analysis
 │   ├── validation.py            # k-fold Brier Score validation
-│   ├── data_ingestion.py        # StatsBomb historical WC data pipeline
+│   ├── data_ingestion.py        # StatsBomb historical WC data pipeline + H2H records
 │   ├── live_ingestion.py        # football-data.org live result ingestion + Elo updates
+│   ├── match_analysis.py        # Matchup features: H2H history, xG form, tactical context
+│   ├── notify.py                # GitHub Actions notifier — fetches results + pushes to ntfy
 │   ├── api.py                   # FastAPI REST server
 │   └── main.py                  # CLI runner + 32-team WC 2026 field
+├── .github/
+│   └── workflows/
+│       └── notify.yml           # Cron job: fetch results every 3h, push phone notification
 ├── data/
-│   └── team_histories.json      # Cached StatsBomb metrics (auto-generated)
+│   ├── team_histories.json      # Cached StatsBomb per-team metrics (auto-generated)
+│   ├── h2h_data.json            # Cached WC head-to-head records (auto-generated)
+│   └── tournament_state.json    # Live Elo state — updated after each result
 ├── notebooks/
 ├── tests/
 ├── requirements.txt
@@ -84,6 +91,7 @@ Then open **http://localhost:8000/docs** for the interactive UI.
 | `POST` | `/predict` | XGBoost 3-way match probabilities + module delta vs Elo baseline |
 | `POST` | `/simulate` | Monte Carlo head-to-head (configurable n\_sims, knockout flag) |
 | `GET` | `/modules` | Per-module score breakdown for a matchup |
+| `GET` | `/analysis` | Full deep analysis: H2H history, xG form, modules, and prediction in one response |
 | `GET` | `/state` | Live tournament state: Elo changes + recent results |
 | `POST` | `/ingest` | Pull latest results from football-data.org and update Elos |
 
@@ -111,6 +119,47 @@ curl -X POST http://localhost:8000/predict \
 
 `module_delta` is the XGBoost win probability minus the raw Elo win probability — positive means the research modules favour this team beyond what Elo predicts.
 
+### Example — deep match analysis
+
+```bash
+curl "http://localhost:8000/analysis?home=Argentina&away=France"
+```
+
+```json
+{
+  "home_team": "Argentina",
+  "away_team": "France",
+  "home_elo": 2150.0,
+  "away_elo": 2100.0,
+  "prediction": {
+    "home_win": 0.5021,
+    "draw": 0.2614,
+    "away_win": 0.2365,
+    "elo_baseline_home_win": 0.5715,
+    "matchup_adjustment": "-0.069"
+  },
+  "head_to_head": {
+    "wc_meetings": 1,
+    "home_wins": 1,
+    "away_wins": 0,
+    "draws": 0,
+    "record": "Argentina 1W – 0D – 0W France",
+    "source": "StatsBomb WC 2018 + 2022 open data"
+  },
+  "xg_form": {
+    "Argentina": { "xg_per_game": 1.84, "xg_against_per_game": 0.93, "wc_games_in_dataset": 14 },
+    "France":    { "xg_per_game": 1.56, "xg_against_per_game": 1.12, "wc_games_in_dataset": 13 },
+    "attack_edge": "Argentina +0.28",
+    "defense_edge": "Argentina +0.19 xG conceded"
+  },
+  "research_modules": {
+    "tournament_dna": { "Argentina": 72.3, "France": 68.1, "edge": "Argentina +4.2" },
+    "...": "..."
+  },
+  "composite_score": { "Argentina": 65.2, "France": 63.8, "edge": "Argentina +1.4" }
+}
+```
+
 ### Example — Monte Carlo simulation
 
 ```bash
@@ -133,8 +182,10 @@ On first run, `data_ingestion.py` fetches all men's World Cup data from the [Sta
 - Late goals, wins from behind (PressurePerformanceIndex)
 - Pressing intensity, ball recoveries, progressive carries per 90 (InvisibleImpactScore)
 - Tournament round progression vs expected (TournamentDNAScore)
+- xG for/against per game (match analysis + XGBoost features)
+- Head-to-head WC records for every meeting in the dataset (match analysis)
 
-Results cache to `data/team_histories.json` — subsequent starts are instant.
+Results cache to `data/team_histories.json` and `data/h2h_data.json` — subsequent starts are instant.
 
 ### Live (during tournament) — football-data.org
 
@@ -183,7 +234,9 @@ Goals are sampled from the joint distribution with the Dixon-Coles correction ap
 ```
 [elo_diff, home_climate, away_climate, climate_delta,
  home_resilience, away_resilience, resilience_delta, ...,
- home_composite, away_composite, composite_delta]
+ home_composite, away_composite, composite_delta,
+ h2h_win_rate, h2h_meetings, home_xg_per_game, away_xg_per_game,
+ xg_form_diff, xg_against_diff]
 ```
 
 `SHAPAnalyzer` computes SHAP values (TreeExplainer) and surfaces a module lift table showing which research modules add genuine predictive value versus noise on top of Elo:
@@ -238,8 +291,8 @@ tournament_resilience    0.000     0.0%   noise
 | 2 | ✅ Done | XGBoost on module-enriched features + SHAP lift analysis + Brier Score validation |
 | 3 | ✅ Done | FastAPI REST layer + StatsBomb historical data ingestion |
 | 4 | ✅ Done | Live result ingestion + real-time Elo updates (football-data.org) |
-| 5 | In progress | GitHub Actions cron + phone notifications on upset detection |
-| 6 | Planned | Deep match analysis: head-to-head history, xG form, tactical context as XGBoost features |
+| 5 | ✅ Done | GitHub Actions cron every 3h — fetches results + pushes phone notification via ntfy |
+| 6 | ✅ Done | Deep match analysis: H2H history, xG form + tactical context as XGBoost features; `/analysis` endpoint |
 
 ---
 

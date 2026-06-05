@@ -32,6 +32,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 CACHE_PATH = Path(__file__).parent.parent / "data" / "team_histories.json"
+H2H_CACHE_PATH = Path(__file__).parent.parent / "data" / "h2h_data.json"
 
 # Furthest round a team reaches in a WC → integer rank
 ROUND_RANK: dict[str, int] = {
@@ -108,6 +109,9 @@ class _Acc:
     prog_actions: float = 0.0
     total_minutes: float = 0.0
     best_round_per_wc: list[int] = field(default_factory=list)
+    xg_for: float = 0.0
+    xg_against: float = 0.0
+    games: int = 0
 
     def finalize(self) -> dict:
         mins = max(self.total_minutes, 1.0)
@@ -140,6 +144,10 @@ class _Acc:
             "pressures_per_90": round(self.pressures / mins * 90, 1),
             "ball_recoveries_per_90": round(self.recoveries / mins * 90, 1),
             "progressive_actions_per_90": round(self.prog_actions / mins * 90, 1),
+            # xG form (from shot events)
+            "xg_for_per_game": round(self.xg_for / max(self.games, 1), 3),
+            "xg_against_per_game": round(self.xg_against / max(self.games, 1), 3),
+            "games": self.games,
             # LeadershipStabilityScore — external source needed
             "coach_tenure_years": 2.0,
             "captain_caps": 80,
@@ -167,23 +175,64 @@ def load_team_histories(force_refresh: bool = False) -> dict[str, dict]:
     """
     if not force_refresh and CACHE_PATH.exists():
         return json.loads(CACHE_PATH.read_text())
+    _build_and_cache()
+    return json.loads(CACHE_PATH.read_text()) if CACHE_PATH.exists() else {}
 
+
+def load_h2h_data(force_refresh: bool = False) -> dict[str, dict]:
+    """
+    Return head-to-head WC records keyed by 'TeamA|TeamB' (alphabetical).
+    Built in the same StatsBomb pass as team histories; cached separately.
+    """
+    if not force_refresh and H2H_CACHE_PATH.exists():
+        return json.loads(H2H_CACHE_PATH.read_text())
+    _build_and_cache()
+    return json.loads(H2H_CACHE_PATH.read_text()) if H2H_CACHE_PATH.exists() else {}
+
+
+def _build_and_cache() -> None:
     print("Building team histories from StatsBomb open data...")
-    print("(First run only — subsequent starts use data/team_histories.json)")
-    histories = _build()
+    print("(First run only — subsequent starts use cached JSON files)")
+    histories, h2h = _build()
+    CACHE_PATH.parent.mkdir(exist_ok=True)
     if histories:
-        CACHE_PATH.parent.mkdir(exist_ok=True)
         CACHE_PATH.write_text(json.dumps(histories, indent=2))
         print(f"Cached {len(histories)} teams to {CACHE_PATH}")
-    return histories
+    if h2h:
+        H2H_CACHE_PATH.write_text(json.dumps(h2h, indent=2))
+        print(f"Cached {len(h2h)} h2h matchups to {H2H_CACHE_PATH}")
 
 
 # ---------------------------------------------------------------------------
 # Build pipeline
 # ---------------------------------------------------------------------------
 
-def _build() -> dict[str, dict]:
+def _build_h2h(all_matches) -> dict[str, dict]:
+    """Build WC head-to-head records from concatenated match-level DataFrames."""
+    h2h: dict[str, dict] = {}
+    for _, m in all_matches.iterrows():
+        home = _match_team(m, "home")
+        away = _match_team(m, "away")
+        if not home or not away:
+            continue
+        home_score = int(m.get("home_score") or 0)
+        away_score = int(m.get("away_score") or 0)
+        key = "|".join(sorted([home, away]))
+        if key not in h2h:
+            h2h[key] = {"meetings": 0, "draws": 0}
+        h2h[key]["meetings"] += 1
+        if home_score > away_score:
+            h2h[key][f"{home}_wins"] = h2h[key].get(f"{home}_wins", 0) + 1
+        elif away_score > home_score:
+            h2h[key][f"{away}_wins"] = h2h[key].get(f"{away}_wins", 0) + 1
+        else:
+            h2h[key]["draws"] += 1
+    return h2h
+
+
+def _build() -> tuple[dict[str, dict], dict[str, dict]]:
     try:
+        import pandas as pd
         from statsbombpy import sb
     except ImportError:
         print(
@@ -191,7 +240,7 @@ def _build() -> dict[str, dict]:
             "Falling back to empty team histories.",
             file=sys.stderr,
         )
-        return {}
+        return {}, {}
 
     comps = sb.competitions()
     wc = comps[
@@ -200,9 +249,10 @@ def _build() -> dict[str, dict]:
     ]
     if wc.empty:
         print("No men's WC competitions found in StatsBomb free data.", file=sys.stderr)
-        return {}
+        return {}, {}
 
     acc: dict[str, _Acc] = defaultdict(_Acc)
+    all_matches: list = []
 
     for _, row in wc.iterrows():
         comp_id = int(row["competition_id"])
@@ -216,6 +266,7 @@ def _build() -> dict[str, dict]:
             print(f"  Skipping {label}: {exc}", file=sys.stderr)
             continue
 
+        all_matches.append(matches)
         _ingest_matches(matches, acc)
 
         n = len(matches)
@@ -229,7 +280,9 @@ def _build() -> dict[str, dict]:
             if i % 16 == 0 or i == n:
                 print(f"    {i}/{n}", flush=True)
 
-    return {name: a.finalize() for name, a in acc.items() if name}
+    histories = {name: a.finalize() for name, a in acc.items() if name}
+    h2h = _build_h2h(pd.concat(all_matches, ignore_index=True)) if all_matches else {}
+    return histories, h2h
 
 
 # ---------------------------------------------------------------------------
@@ -270,6 +323,7 @@ def _ingest_events(events, match, acc: dict[str, _Acc]) -> None:
     # 90 minutes of data per match per team
     for team in (home, away):
         acc[team].total_minutes += 90.0
+        acc[team].games += 1
 
     # --- Goals (periods 1–4, excluding penalty shootout period 5) ---
     goal_mask = (type_col == "Shot") & (events["period"] <= 4)
@@ -287,6 +341,9 @@ def _ingest_events(events, match, acc: dict[str, _Acc]) -> None:
 
     # --- Red cards / 10-man performance ---
     _update_red_card_stats(events, type_col, team_col, home, away, home_score, away_score, acc)
+
+    # --- xG from shot events ---
+    _update_xg_stats(events, type_col, team_col, home, away, acc)
 
     # --- Pressing, recoveries, progressive carries ---
     _update_invisible_stats(events, type_col, team_col, home, away, acc)
@@ -376,6 +433,18 @@ def _update_red_card_stats(
         )
         acc[red_team].ten_man_matches += 1
         acc[red_team].ten_man_points += pts
+
+
+def _update_xg_stats(events, type_col, team_col, home, away, acc) -> None:
+    if "shot_statsbomb_xg" not in events.columns:
+        return
+    shot_mask = (type_col == "Shot") & (events["period"] <= 4)
+    shots = events[shot_mask]
+    for team, opp in ((home, away), (away, home)):
+        team_shots = shots[team_col.reindex(shots.index) == team]
+        opp_shots = shots[team_col.reindex(shots.index) == opp]
+        acc[team].xg_for += float(team_shots["shot_statsbomb_xg"].fillna(0).sum())
+        acc[team].xg_against += float(opp_shots["shot_statsbomb_xg"].fillna(0).sum())
 
 
 def _update_invisible_stats(events, type_col, team_col, home, away, acc) -> None:

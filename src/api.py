@@ -33,6 +33,8 @@ from match_simulator import MatchSimulator  # noqa: E402
 from ml_model import XGBoostMatchPredictor, generate_training_data  # noqa: E402
 from team import Team  # noqa: E402
 from live_ingestion import load_live_elos, fetch_and_update, get_state_summary  # noqa: E402
+from data_ingestion import load_h2h_data  # noqa: E402
+from match_analysis import compute_matchup_features, h2h_summary, xg_summary  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Shared state — initialised once at startup
@@ -42,13 +44,15 @@ _BASE_ELOS: dict[str, float] = {t.name: t.elo for t in TEAMS}
 _team_map: dict[str, Team] = {t.name.lower(): t for t in TEAMS}
 _match_sim = MatchSimulator()
 _model: XGBoostMatchPredictor | None = None
+_H2H_DATA: dict[str, dict] = load_h2h_data()
 
 
 def _get_model() -> XGBoostMatchPredictor:
     global _model
     if _model is None:
         samples = generate_training_data(
-            TEAMS, WC_2026, _COMPOSITOR, TEAM_HISTORIES, n_samples=2_000
+            TEAMS, WC_2026, _COMPOSITOR, TEAM_HISTORIES, n_samples=2_000,
+            h2h_data=_H2H_DATA,
         )
         _model = XGBoostMatchPredictor()
         _model.train(samples)
@@ -177,8 +181,10 @@ def predict(req: MatchupRequest) -> dict[str, Any]:
 
     home_scores = _COMPOSITOR.compute_all(home, WC_2026, TEAM_HISTORIES.get(home.name))
     away_scores = _COMPOSITOR.compute_all(away, WC_2026, TEAM_HISTORIES.get(away.name))
-    probs = model.predict_proba(home.elo, away.elo, home_scores, away_scores)
+    matchup = compute_matchup_features(home.name, away.name, TEAM_HISTORIES, _H2H_DATA)
+    probs = model.predict_proba(home.elo, away.elo, home_scores, away_scores, matchup)
 
+    elo_win = _match_sim.elo_win_probability(home, away)
     return {
         "home_team": home.name,
         "away_team": away.name,
@@ -187,8 +193,8 @@ def predict(req: MatchupRequest) -> dict[str, Any]:
         "home_win": round(probs["home_win"], 4),
         "draw": round(probs["draw"], 4),
         "away_win": round(probs["away_win"], 4),
-        "elo_home_win": round(_match_sim.elo_win_probability(home, away), 4),
-        "module_delta": round(probs["home_win"] - _match_sim.elo_win_probability(home, away), 4),
+        "elo_home_win": round(elo_win, 4),
+        "module_delta": round(probs["home_win"] - elo_win, 4),
     }
 
 
@@ -246,6 +252,70 @@ def modules(
         "home_composite": round(_COMPOSITOR.composite_score(home_team, WC_2026, TEAM_HISTORIES.get(home_team.name)), 2),
         "away_composite": round(_COMPOSITOR.composite_score(away_team, WC_2026, TEAM_HISTORIES.get(away_team.name)), 2),
         "modules": modules_out,
+    }
+
+
+@app.get("/analysis")
+def analysis(
+    home: str = Query(..., examples=["Argentina"]),
+    away: str = Query(..., examples=["France"]),
+) -> dict[str, Any]:
+    """
+    Deep single-match analysis: prediction, head-to-head history,
+    xG form, and per-module research scores in one response.
+    """
+    home_team = _resolve(home)
+    away_team = _resolve(away)
+    model = _get_model()
+
+    home_scores = _COMPOSITOR.compute_all(home_team, WC_2026, TEAM_HISTORIES.get(home_team.name))
+    away_scores = _COMPOSITOR.compute_all(away_team, WC_2026, TEAM_HISTORIES.get(away_team.name))
+    matchup = compute_matchup_features(home_team.name, away_team.name, TEAM_HISTORIES, _H2H_DATA)
+    probs = model.predict_proba(home_team.elo, away_team.elo, home_scores, away_scores, matchup)
+
+    elo_win = _match_sim.elo_win_probability(home_team, away_team)
+    matchup_adj = probs["home_win"] - elo_win
+
+    modules_out = {
+        mod: {
+            home_team.name: round(home_scores[mod], 1),
+            away_team.name: round(away_scores[mod], 1),
+            "edge": (
+                f"{home_team.name} +{home_scores[mod] - away_scores[mod]:.1f}"
+                if home_scores[mod] >= away_scores[mod]
+                else f"{away_team.name} +{away_scores[mod] - home_scores[mod]:.1f}"
+            ),
+        }
+        for mod in home_scores
+    }
+
+    home_comp = _COMPOSITOR.composite_score(home_team, WC_2026, TEAM_HISTORIES.get(home_team.name))
+    away_comp = _COMPOSITOR.composite_score(away_team, WC_2026, TEAM_HISTORIES.get(away_team.name))
+
+    return {
+        "home_team": home_team.name,
+        "away_team": away_team.name,
+        "home_elo": round(home_team.elo, 1),
+        "away_elo": round(away_team.elo, 1),
+        "prediction": {
+            "home_win": round(probs["home_win"], 4),
+            "draw": round(probs["draw"], 4),
+            "away_win": round(probs["away_win"], 4),
+            "elo_baseline_home_win": round(elo_win, 4),
+            "matchup_adjustment": f"{matchup_adj:+.3f}",
+        },
+        "head_to_head": h2h_summary(home_team.name, away_team.name, _H2H_DATA),
+        "xg_form": xg_summary(home_team.name, away_team.name, TEAM_HISTORIES),
+        "research_modules": modules_out,
+        "composite_score": {
+            home_team.name: round(home_comp, 1),
+            away_team.name: round(away_comp, 1),
+            "edge": (
+                f"{home_team.name} +{home_comp - away_comp:.1f}"
+                if home_comp >= away_comp
+                else f"{away_team.name} +{away_comp - home_comp:.1f}"
+            ),
+        },
     }
 
 

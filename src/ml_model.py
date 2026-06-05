@@ -1,6 +1,6 @@
 from __future__ import annotations
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 from xgboost import XGBClassifier
@@ -8,6 +8,7 @@ from xgboost import XGBClassifier
 from team import Team, Tournament
 from research_modules import ModuleCompositor
 from match_simulator import MatchSimulator
+from match_analysis import compute_matchup_features
 
 # Canonical module order — must stay consistent across training and inference
 MODULE_NAMES = [
@@ -23,6 +24,24 @@ MODULE_NAMES = [
     "injury_impact",
 ]
 
+MATCHUP_FEATURE_NAMES = [
+    "h2h_win_rate",
+    "h2h_meetings",
+    "home_xg_per_game",
+    "away_xg_per_game",
+    "xg_form_diff",
+    "xg_against_diff",
+]
+
+_MATCHUP_DEFAULTS: dict[str, float] = {
+    "h2h_win_rate": 0.5,
+    "h2h_meetings": 0.0,
+    "home_xg_per_game": 1.3,
+    "away_xg_per_game": 1.3,
+    "xg_form_diff": 0.0,
+    "xg_against_diff": 0.0,
+}
+
 
 @dataclass
 class MatchSample:
@@ -32,6 +51,7 @@ class MatchSample:
     home_module_scores: dict[str, float]
     away_module_scores: dict[str, float]
     outcome: int  # 1 = home win, 0 = draw, -1 = away win
+    matchup_features: dict[str, float] = field(default_factory=dict)
 
 
 class FeatureBuilder:
@@ -57,6 +77,7 @@ class FeatureBuilder:
         for m in module_names:
             names += [f"home_{m}", f"away_{m}", f"{m}_delta"]
         names += ["home_composite", "away_composite", "composite_delta"]
+        names += MATCHUP_FEATURE_NAMES
         return names
 
     @staticmethod
@@ -73,6 +94,10 @@ class FeatureBuilder:
         home_comp = sum(home.values()) / max(len(home), 1)
         away_comp = sum(away.values()) / max(len(away), 1)
         features += [home_comp, away_comp, home_comp - away_comp]
+
+        for k in MATCHUP_FEATURE_NAMES:
+            features.append(sample.matchup_features.get(k, _MATCHUP_DEFAULTS[k]))
+
         return np.array(features, dtype=np.float32)
 
     @staticmethod
@@ -138,10 +163,14 @@ class XGBoostMatchPredictor:
         away_elo: float,
         home_module_scores: dict[str, float],
         away_module_scores: dict[str, float],
+        matchup_features: dict[str, float] | None = None,
     ) -> dict[str, float]:
         if not self.is_trained:
             raise RuntimeError("Call train() before predict_proba()")
-        sample = MatchSample(home_elo, away_elo, home_module_scores, away_module_scores, 0)
+        sample = MatchSample(
+            home_elo, away_elo, home_module_scores, away_module_scores, 0,
+            matchup_features or {},
+        )
         X = FeatureBuilder.build(sample).reshape(1, -1)
         probs = self._model.predict_proba(X)[0]
         return dict(zip(self.OUTCOME_LABELS, map(float, probs)))
@@ -162,6 +191,7 @@ def generate_training_data(
     compositor: ModuleCompositor,
     team_histories: dict[str, dict] | None = None,
     n_samples: int = 5_000,
+    h2h_data: dict[str, dict] | None = None,
 ) -> list[MatchSample]:
     """
     Generate synthetic training samples by running Dixon-Coles simulations.
@@ -175,6 +205,7 @@ def generate_training_data(
     this once the DB ingestion pipeline is wired up.
     """
     histories = team_histories or {}
+    h2h = h2h_data or {}
     match_sim = MatchSimulator()
     samples: list[MatchSample] = []
 
@@ -191,6 +222,7 @@ def generate_training_data(
         else:
             outcome = 0
 
-        samples.append(MatchSample(home.elo, away.elo, home_scores, away_scores, outcome))
+        matchup = compute_matchup_features(home.name, away.name, histories, h2h)
+        samples.append(MatchSample(home.elo, away.elo, home_scores, away_scores, outcome, matchup))
 
     return samples
