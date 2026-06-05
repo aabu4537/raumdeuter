@@ -1,0 +1,643 @@
+{
+  "Canada|Morocco": {
+    "meetings": 1,
+    "draws": 0,
+    "Morocco_wins": 1
+  },
+  "England|Iran": {
+    "meetings": 1,
+    "draws": 0,
+    "England_wins": 1
+  },
+  "Belgium|Croatia": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Ecuador|Netherlands": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Japan|Spain": {
+    "meetings": 1,
+    "draws": 0,
+    "Japan_wins": 1
+  },
+  "England|USA": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Iran|USA": {
+    "meetings": 1,
+    "draws": 0,
+    "USA_wins": 1
+  },
+  "Croatia|Morocco": {
+    "meetings": 2,
+    "draws": 1,
+    "Croatia_wins": 1
+  },
+  "Iran|Wales": {
+    "meetings": 1,
+    "draws": 0,
+    "Iran_wins": 1
+  },
+  "France|Tunisia": {
+    "meetings": 1,
+    "draws": 0,
+    "Tunisia_wins": 1
+  },
+  "England|Wales": {
+    "meetings": 1,
+    "draws": 0,
+    "England_wins": 1
+  },
+  "Cameroon|Switzerland": {
+    "meetings": 1,
+    "draws": 0,
+    "Switzerland_wins": 1
+  },
+  "Ghana|Portugal": {
+    "meetings": 1,
+    "draws": 0,
+    "Portugal_wins": 1
+  },
+  "Netherlands|Senegal": {
+    "meetings": 1,
+    "draws": 0,
+    "Netherlands_wins": 1
+  },
+  "USA|Wales": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Poland|Saudi Arabia": {
+    "meetings": 1,
+    "draws": 0,
+    "Poland_wins": 1
+  },
+  "Netherlands|Qatar": {
+    "meetings": 1,
+    "draws": 0,
+    "Netherlands_wins": 1
+  },
+  "Denmark|France": {
+    "meetings": 2,
+    "draws": 1,
+    "France_wins": 1
+  },
+  "Germany|Japan": {
+    "meetings": 1,
+    "draws": 0,
+    "Japan_wins": 1
+  },
+  "Denmark|Tunisia": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Mexico|Poland": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Qatar|Senegal": {
+    "meetings": 1,
+    "draws": 0,
+    "Senegal_wins": 1
+  },
+  "Belgium|Canada": {
+    "meetings": 1,
+    "draws": 0,
+    "Belgium_wins": 1
+  },
+  "Brazil|Switzerland": {
+    "meetings": 2,
+    "draws": 1,
+    "Brazil_wins": 1
+  },
+  "Argentina|Netherlands": {
+    "meetings": 2,
+    "draws": 1,
+    "Netherlands_wins": 1
+  },
+  "Costa Rica|Germany": {
+    "meetings": 1,
+    "draws": 0,
+    "Germany_wins": 1
+  },
+  "Costa Rica|Japan": {
+    "meetings": 1,
+    "draws": 0,
+    "Costa Rica_wins": 1
+  },
+  "Argentina|France": {
+    "meetings": 2,
+    "draws": 1,
+    "France_wins": 1
+  },
+  "Serbia|Switzerland": {
+    "meetings": 2,
+    "draws": 0,
+    "Switzerland_wins": 2
+  },
+  "Argentina|Australia": {
+    "meetings": 1,
+    "draws": 0,
+    "Argentina_wins": 1
+  },
+  "Australia|Denmark": {
+    "meetings": 2,
+    "draws": 1,
+    "Australia_wins": 1
+  },
+  "Brazil|Serbia": {
+    "meetings": 2,
+    "draws": 0,
+    "Brazil_wins": 2
+  },
+  "Australia|Tunisia": {
+    "meetings": 1,
+    "draws": 0,
+    "Australia_wins": 1
+  },
+  "Ecuador|Senegal": {
+    "meetings": 1,
+    "draws": 0,
+    "Senegal_wins": 1
+  },
+  "South Korea|Uruguay": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Morocco|Portugal": {
+    "meetings": 2,
+    "draws": 0,
+    "Morocco_wins": 1,
+    "Portugal_wins": 1
+  },
+  "Mexico|Saudi Arabia": {
+    "meetings": 1,
+    "draws": 0,
+    "Mexico_wins": 1
+  },
+  "Argentina|Poland": {
+    "meetings": 1,
+    "draws": 0,
+    "Argentina_wins": 1
+  },
+  "Argentina|Mexico": {
+    "meetings": 1,
+    "draws": 0,
+    "Argentina_wins": 1
+  },
+  "Portugal|Switzerland": {
+    "meetings": 1,
+    "draws": 0,
+    "Portugal_wins": 1
+  },
+  "England|Senegal": {
+    "meetings": 1,
+    "draws": 0,
+    "England_wins": 1
+  },
+  "Argentina|Croatia": {
+    "meetings": 2,
+    "draws": 0,
+    "Argentina_wins": 1,
+    "Croatia_wins": 1
+  },
+  "England|France": {
+    "meetings": 1,
+    "draws": 0,
+    "France_wins": 1
+  },
+  "France|Morocco": {
+    "meetings": 1,
+    "draws": 0,
+    "France_wins": 1
+  },
+  "Brazil|Croatia": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Morocco|Spain": {
+    "meetings": 2,
+    "draws": 2
+  },
+  "Croatia|Japan": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Brazil|South Korea": {
+    "meetings": 1,
+    "draws": 0,
+    "Brazil_wins": 1
+  },
+  "France|Poland": {
+    "meetings": 1,
+    "draws": 0,
+    "France_wins": 1
+  },
+  "Netherlands|USA": {
+    "meetings": 1,
+    "draws": 0,
+    "Netherlands_wins": 1
+  },
+  "Portugal|Uruguay": {
+    "meetings": 2,
+    "draws": 0,
+    "Portugal_wins": 1,
+    "Uruguay_wins": 1
+  },
+  "Germany|Spain": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Cameroon|Serbia": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Belgium|Morocco": {
+    "meetings": 1,
+    "draws": 0,
+    "Morocco_wins": 1
+  },
+  "Ecuador|Qatar": {
+    "meetings": 1,
+    "draws": 0,
+    "Ecuador_wins": 1
+  },
+  "Argentina|Saudi Arabia": {
+    "meetings": 1,
+    "draws": 0,
+    "Saudi Arabia_wins": 1
+  },
+  "Ghana|South Korea": {
+    "meetings": 1,
+    "draws": 0,
+    "Ghana_wins": 1
+  },
+  "Ghana|Uruguay": {
+    "meetings": 1,
+    "draws": 0,
+    "Uruguay_wins": 1
+  },
+  "Costa Rica|Spain": {
+    "meetings": 1,
+    "draws": 0,
+    "Spain_wins": 1
+  },
+  "Canada|Croatia": {
+    "meetings": 1,
+    "draws": 0,
+    "Croatia_wins": 1
+  },
+  "Brazil|Cameroon": {
+    "meetings": 1,
+    "draws": 0,
+    "Cameroon_wins": 1
+  },
+  "Australia|France": {
+    "meetings": 2,
+    "draws": 0,
+    "France_wins": 2
+  },
+  "Portugal|South Korea": {
+    "meetings": 1,
+    "draws": 0,
+    "South Korea_wins": 1
+  },
+  "Belgium|Brazil": {
+    "meetings": 1,
+    "draws": 0,
+    "Belgium_wins": 1
+  },
+  "Belgium|Japan": {
+    "meetings": 1,
+    "draws": 0,
+    "Belgium_wins": 1
+  },
+  "England|Panama": {
+    "meetings": 1,
+    "draws": 0,
+    "England_wins": 1
+  },
+  "Poland|Senegal": {
+    "meetings": 1,
+    "draws": 0,
+    "Senegal_wins": 1
+  },
+  "South Korea|Sweden": {
+    "meetings": 1,
+    "draws": 0,
+    "Sweden_wins": 1
+  },
+  "Germany|Mexico": {
+    "meetings": 1,
+    "draws": 0,
+    "Mexico_wins": 1
+  },
+  "Iran|Spain": {
+    "meetings": 1,
+    "draws": 0,
+    "Spain_wins": 1
+  },
+  "Saudi Arabia|Uruguay": {
+    "meetings": 1,
+    "draws": 0,
+    "Uruguay_wins": 1
+  },
+  "France|Peru": {
+    "meetings": 1,
+    "draws": 0,
+    "France_wins": 1
+  },
+  "Colombia|England": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Panama|Tunisia": {
+    "meetings": 1,
+    "draws": 0,
+    "Tunisia_wins": 1
+  },
+  "Japan|Poland": {
+    "meetings": 1,
+    "draws": 0,
+    "Poland_wins": 1
+  },
+  "Croatia|Iceland": {
+    "meetings": 1,
+    "draws": 0,
+    "Croatia_wins": 1
+  },
+  "Egypt|Russia": {
+    "meetings": 1,
+    "draws": 0,
+    "Russia_wins": 1
+  },
+  "Argentina|Iceland": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Belgium|England": {
+    "meetings": 2,
+    "draws": 0,
+    "Belgium_wins": 2
+  },
+  "Sweden|Switzerland": {
+    "meetings": 1,
+    "draws": 0,
+    "Sweden_wins": 1
+  },
+  "Iran|Portugal": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Croatia|England": {
+    "meetings": 1,
+    "draws": 0,
+    "Croatia_wins": 1
+  },
+  "Brazil|Costa Rica": {
+    "meetings": 1,
+    "draws": 0,
+    "Brazil_wins": 1
+  },
+  "Egypt|Uruguay": {
+    "meetings": 1,
+    "draws": 0,
+    "Uruguay_wins": 1
+  },
+  "Mexico|South Korea": {
+    "meetings": 1,
+    "draws": 0,
+    "Mexico_wins": 1
+  },
+  "Belgium|Panama": {
+    "meetings": 1,
+    "draws": 0,
+    "Belgium_wins": 1
+  },
+  "Colombia|Poland": {
+    "meetings": 1,
+    "draws": 0,
+    "Colombia_wins": 1
+  },
+  "Portugal|Spain": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Germany|Sweden": {
+    "meetings": 1,
+    "draws": 0,
+    "Germany_wins": 1
+  },
+  "England|Tunisia": {
+    "meetings": 1,
+    "draws": 0,
+    "England_wins": 1
+  },
+  "Croatia|Denmark": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Iceland|Nigeria": {
+    "meetings": 1,
+    "draws": 0,
+    "Nigeria_wins": 1
+  },
+  "Croatia|Nigeria": {
+    "meetings": 1,
+    "draws": 0,
+    "Croatia_wins": 1
+  },
+  "Australia|Peru": {
+    "meetings": 1,
+    "draws": 0,
+    "Peru_wins": 1
+  },
+  "Colombia|Senegal": {
+    "meetings": 1,
+    "draws": 0,
+    "Colombia_wins": 1
+  },
+  "Costa Rica|Switzerland": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Russia|Uruguay": {
+    "meetings": 1,
+    "draws": 0,
+    "Uruguay_wins": 1
+  },
+  "Brazil|Mexico": {
+    "meetings": 2,
+    "draws": 0,
+    "Brazil_wins": 2
+  },
+  "Costa Rica|Serbia": {
+    "meetings": 1,
+    "draws": 0,
+    "Serbia_wins": 1
+  },
+  "France|Uruguay": {
+    "meetings": 1,
+    "draws": 0,
+    "France_wins": 1
+  },
+  "Croatia|France": {
+    "meetings": 1,
+    "draws": 0,
+    "France_wins": 1
+  },
+  "Russia|Spain": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Belgium|Tunisia": {
+    "meetings": 1,
+    "draws": 0,
+    "Belgium_wins": 1
+  },
+  "Denmark|Peru": {
+    "meetings": 1,
+    "draws": 0,
+    "Denmark_wins": 1
+  },
+  "Argentina|Nigeria": {
+    "meetings": 1,
+    "draws": 0,
+    "Argentina_wins": 1
+  },
+  "Iran|Morocco": {
+    "meetings": 1,
+    "draws": 0,
+    "Iran_wins": 1
+  },
+  "Russia|Saudi Arabia": {
+    "meetings": 1,
+    "draws": 0,
+    "Russia_wins": 1
+  },
+  "Mexico|Sweden": {
+    "meetings": 1,
+    "draws": 0,
+    "Sweden_wins": 1
+  },
+  "England|Sweden": {
+    "meetings": 1,
+    "draws": 0,
+    "England_wins": 1
+  },
+  "Germany|South Korea": {
+    "meetings": 1,
+    "draws": 0,
+    "South Korea_wins": 1
+  },
+  "Colombia|Japan": {
+    "meetings": 1,
+    "draws": 0,
+    "Japan_wins": 1
+  },
+  "Belgium|France": {
+    "meetings": 1,
+    "draws": 0,
+    "France_wins": 1
+  },
+  "Croatia|Russia": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Japan|Senegal": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "Egypt|Saudi Arabia": {
+    "meetings": 1,
+    "draws": 0,
+    "Saudi Arabia_wins": 1
+  },
+  "Argentina|Brazil": {
+    "meetings": 1,
+    "draws": 0,
+    "Argentina_wins": 1
+  },
+  "Argentina|Belgium": {
+    "meetings": 1,
+    "draws": 0,
+    "Argentina_wins": 1
+  },
+  "Argentina|Germany": {
+    "meetings": 1,
+    "draws": 0,
+    "Argentina_wins": 1
+  },
+  "Argentina|England": {
+    "meetings": 1,
+    "draws": 0,
+    "Argentina_wins": 1
+  },
+  "German DR|Netherlands": {
+    "meetings": 1,
+    "draws": 0,
+    "Netherlands_wins": 1
+  },
+  "Germany|Netherlands": {
+    "meetings": 1,
+    "draws": 0,
+    "Germany_wins": 1
+  },
+  "Brazil|Netherlands": {
+    "meetings": 1,
+    "draws": 0,
+    "Netherlands_wins": 1
+  },
+  "Netherlands|Sweden": {
+    "meetings": 1,
+    "draws": 1
+  },
+  "German DR|Germany": {
+    "meetings": 1,
+    "draws": 0,
+    "German DR_wins": 1
+  },
+  "Brazil|England": {
+    "meetings": 1,
+    "draws": 0,
+    "Brazil_wins": 1
+  },
+  "Brazil|Peru": {
+    "meetings": 1,
+    "draws": 0,
+    "Brazil_wins": 1
+  },
+  "Brazil|Romania": {
+    "meetings": 1,
+    "draws": 0,
+    "Brazil_wins": 1
+  },
+  "Brazil|Italy": {
+    "meetings": 1,
+    "draws": 0,
+    "Brazil_wins": 1
+  },
+  "Brazil|Uruguay": {
+    "meetings": 1,
+    "draws": 0,
+    "Brazil_wins": 1
+  },
+  "Brazil|Czechoslovakia": {
+    "meetings": 1,
+    "draws": 0,
+    "Brazil_wins": 1
+  },
+  "Brazil|Sweden": {
+    "meetings": 1,
+    "draws": 0,
+    "Brazil_wins": 1
+  },
+  "Brazil|France": {
+    "meetings": 1,
+    "draws": 0,
+    "Brazil_wins": 1
+  }
+}
