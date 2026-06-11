@@ -1,0 +1,57 @@
+{
+  "elos": {
+    "Argentina": 2150,
+    "France": 2100,
+    "England": 2050,
+    "Brazil": 2040,
+    "Spain": 2030,
+    "Portugal": 2000,
+    "Germany": 1990,
+    "Netherlands": 1980,
+    "Belgium": 1960,
+    "Italy": 1950,
+    "Croatia": 1930,
+    "Morocco": 1900,
+    "Uruguay": 1890,
+    "USA": 1880,
+    "Mexico": 1883.35,
+    "Colombia": 1860,
+    "Senegal": 1850,
+    "Japan": 1840,
+    "South Korea": 1820,
+    "Ecuador": 1810,
+    "Switzerland": 1800,
+    "Austria": 1790,
+    "Denmark": 1780,
+    "Australia": 1760,
+    "Cameroon": 1740,
+    "Ghana": 1720,
+    "Tunisia": 1710,
+    "Poland": 1700,
+    "Serbia": 1690,
+    "Iran": 1680,
+    "Canada": 1670,
+    "Saudi Arabia": 1650,
+    "South Africa": 1736.65
+  },
+  "processed_match_ids": [
+    537327
+  ],
+  "match_log": [
+    {
+      "match_id": 537327,
+      "home": "Mexico",
+      "away": "South Africa",
+      "score": "2-0",
+      "stage": "GROUP_STAGE",
+      "utc_date": "2026-06-11T19:00:00Z",
+      "home_elo_before": 1870,
+      "away_elo_before": 1750.0,
+      "home_elo_after": 1883.4,
+      "away_elo_after": 1736.6,
+      "home_delta": 13.4,
+      "away_delta": -13.4
+    }
+  ],
+  "last_updated": "2026-06-11T22:47:58.191162+00:00"
+}
