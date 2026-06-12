@@ -30,14 +30,16 @@
     "Poland": 1700,
     "Serbia": 1690,
     "Iran": 1680,
-    "Canada": 1670,
+    "Canada": 1674.53,
     "Saudi Arabia": 1650,
     "South Africa": 1736.65,
-    "Czechia": 1733.98
+    "Czechia": 1733.98,
+    "Bosnia-Herzegovina": 1745.47
   },
   "processed_match_ids": [
     537327,
-    537328
+    537328,
+    537333
   ],
   "match_log": [
     {
@@ -67,7 +69,21 @@
       "away_elo_after": 1734.0,
       "home_delta": 16.0,
       "away_delta": -16.0
+    },
+    {
+      "match_id": 537333,
+      "home": "Canada",
+      "away": "Bosnia-Herzegovina",
+      "score": "1-1",
+      "stage": "GROUP_STAGE",
+      "utc_date": "2026-06-12T19:00:00Z",
+      "home_elo_before": 1670,
+      "away_elo_before": 1750.0,
+      "home_elo_after": 1674.5,
+      "away_elo_after": 1745.5,
+      "home_delta": 4.5,
+      "away_delta": -4.5
     }
   ],
-  "last_updated": "2026-06-12T07:15:00.073675+00:00"
+  "last_updated": "2026-06-12T22:19:56.820553+00:00"
 }
