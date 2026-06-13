@@ -13,7 +13,7 @@
     "Croatia": 1930,
     "Morocco": 1900,
     "Uruguay": 1890,
-    "USA": 1880,
+    "USA": 1892.85,
     "Mexico": 1883.35,
     "Colombia": 1860,
     "Senegal": 1850,
@@ -34,12 +34,14 @@
     "Saudi Arabia": 1650,
     "South Africa": 1736.65,
     "Czechia": 1733.98,
-    "Bosnia-Herzegovina": 1745.47
+    "Bosnia-Herzegovina": 1745.47,
+    "Paraguay": 1737.15
   },
   "processed_match_ids": [
     537327,
     537328,
-    537333
+    537333,
+    537345
   ],
   "match_log": [
     {
@@ -83,7 +85,21 @@
       "away_elo_after": 1745.5,
       "home_delta": 4.5,
       "away_delta": -4.5
+    },
+    {
+      "match_id": 537345,
+      "home": "USA",
+      "away": "Paraguay",
+      "score": "4-1",
+      "stage": "GROUP_STAGE",
+      "utc_date": "2026-06-13T01:00:00Z",
+      "home_elo_before": 1880,
+      "away_elo_before": 1750.0,
+      "home_elo_after": 1892.8,
+      "away_elo_after": 1737.2,
+      "home_delta": 12.8,
+      "away_delta": -12.8
     }
   ],
-  "last_updated": "2026-06-12T22:19:56.820553+00:00"
+  "last_updated": "2026-06-13T06:50:57.448433+00:00"
 }
