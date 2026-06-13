@@ -20,7 +20,7 @@
     "Japan": 1840,
     "South Korea": 1836.02,
     "Ecuador": 1810,
-    "Switzerland": 1800,
+    "Switzerland": 1797.14,
     "Austria": 1790,
     "Denmark": 1780,
     "Australia": 1760,
@@ -35,12 +35,14 @@
     "South Africa": 1736.65,
     "Czechia": 1733.98,
     "Bosnia-Herzegovina": 1745.47,
-    "Paraguay": 1737.15
+    "Paraguay": 1737.15,
+    "Qatar": 1752.86
   },
   "processed_match_ids": [
     537327,
     537328,
     537333,
+    537334,
     537345
   ],
   "match_log": [
@@ -99,7 +101,21 @@
       "away_elo_after": 1737.2,
       "home_delta": 12.8,
       "away_delta": -12.8
+    },
+    {
+      "match_id": 537334,
+      "home": "Qatar",
+      "away": "Switzerland",
+      "score": "1-1",
+      "stage": "GROUP_STAGE",
+      "utc_date": "2026-06-13T19:00:00Z",
+      "home_elo_before": 1750.0,
+      "away_elo_before": 1800,
+      "home_elo_after": 1752.9,
+      "away_elo_after": 1797.1,
+      "home_delta": 2.9,
+      "away_delta": -2.9
     }
   ],
-  "last_updated": "2026-06-13T06:50:57.448433+00:00"
+  "last_updated": "2026-06-13T21:57:29.067040+00:00"
 }
