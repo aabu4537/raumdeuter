@@ -23,7 +23,7 @@
     "Switzerland": 1797.14,
     "Austria": 1790,
     "Denmark": 1780,
-    "Australia": 1760,
+    "Australia": 1779.42,
     "Cameroon": 1740,
     "Ghana": 1720,
     "Tunisia": 1710,
@@ -36,7 +36,10 @@
     "Czechia": 1733.98,
     "Bosnia-Herzegovina": 1745.47,
     "Paraguay": 1737.15,
-    "Qatar": 1752.86
+    "Qatar": 1752.86,
+    "Haiti": 1730.0,
+    "Scotland": 1770.0,
+    "Turkey": 1730.58
   },
   "processed_match_ids": [
     537327,
@@ -44,7 +47,9 @@
     537333,
     537334,
     537339,
-    537345
+    537340,
+    537345,
+    537346
   ],
   "match_log": [
     {
@@ -130,7 +135,35 @@
       "away_elo_after": 1907.6,
       "home_delta": -7.6,
       "away_delta": 7.6
+    },
+    {
+      "match_id": 537340,
+      "home": "Haiti",
+      "away": "Scotland",
+      "score": "0-1",
+      "stage": "GROUP_STAGE",
+      "utc_date": "2026-06-14T01:00:00Z",
+      "home_elo_before": 1750.0,
+      "away_elo_before": 1750.0,
+      "home_elo_after": 1730.0,
+      "away_elo_after": 1770.0,
+      "home_delta": -20.0,
+      "away_delta": 20.0
+    },
+    {
+      "match_id": 537346,
+      "home": "Australia",
+      "away": "Turkey",
+      "score": "2-0",
+      "stage": "GROUP_STAGE",
+      "utc_date": "2026-06-14T04:00:00Z",
+      "home_elo_before": 1760,
+      "away_elo_before": 1750.0,
+      "home_elo_after": 1779.4,
+      "away_elo_after": 1730.6,
+      "home_delta": 19.4,
+      "away_delta": -19.4
     }
   ],
-  "last_updated": "2026-06-14T02:44:42.543413+00:00"
+  "last_updated": "2026-06-14T07:17:28.257195+00:00"
 }
