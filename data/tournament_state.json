@@ -6,7 +6,7 @@
     "Brazil": 2032.35,
     "Spain": 2030,
     "Portugal": 2000,
-    "Germany": 1990,
+    "Germany": 1998.03,
     "Netherlands": 1980,
     "Belgium": 1960,
     "Italy": 1950,
@@ -39,7 +39,8 @@
     "Qatar": 1752.86,
     "Haiti": 1730.0,
     "Scotland": 1770.0,
-    "Turkey": 1730.58
+    "Turkey": 1730.58,
+    "Cura\u00e7ao": 1741.97
   },
   "processed_match_ids": [
     537327,
@@ -49,7 +50,8 @@
     537339,
     537340,
     537345,
-    537346
+    537346,
+    537351
   ],
   "match_log": [
     {
@@ -163,7 +165,21 @@
       "away_elo_after": 1730.6,
       "home_delta": 19.4,
       "away_delta": -19.4
+    },
+    {
+      "match_id": 537351,
+      "home": "Germany",
+      "away": "Cura\u00e7ao",
+      "score": "7-1",
+      "stage": "GROUP_STAGE",
+      "utc_date": "2026-06-14T17:00:00Z",
+      "home_elo_before": 1990,
+      "away_elo_before": 1750.0,
+      "home_elo_after": 1998.0,
+      "away_elo_after": 1742.0,
+      "home_delta": 8.0,
+      "away_delta": -8.0
     }
   ],
-  "last_updated": "2026-06-14T07:17:28.257195+00:00"
+  "last_updated": "2026-06-14T19:10:51.263804+00:00"
 }
