@@ -3,7 +3,7 @@
     "Argentina": 2150,
     "France": 2100,
     "England": 2050,
-    "Brazil": 2040,
+    "Brazil": 2032.35,
     "Spain": 2030,
     "Portugal": 2000,
     "Germany": 1990,
@@ -11,7 +11,7 @@
     "Belgium": 1960,
     "Italy": 1950,
     "Croatia": 1930,
-    "Morocco": 1900,
+    "Morocco": 1907.65,
     "Uruguay": 1890,
     "USA": 1892.85,
     "Mexico": 1883.35,
@@ -43,6 +43,7 @@
     537328,
     537333,
     537334,
+    537339,
     537345
   ],
   "match_log": [
@@ -115,7 +116,21 @@
       "away_elo_after": 1797.1,
       "home_delta": 2.9,
       "away_delta": -2.9
+    },
+    {
+      "match_id": 537339,
+      "home": "Brazil",
+      "away": "Morocco",
+      "score": "1-1",
+      "stage": "GROUP_STAGE",
+      "utc_date": "2026-06-13T22:00:00Z",
+      "home_elo_before": 2040,
+      "away_elo_before": 1900,
+      "home_elo_after": 2032.4,
+      "away_elo_after": 1907.6,
+      "home_delta": -7.6,
+      "away_delta": 7.6
     }
   ],
-  "last_updated": "2026-06-13T21:57:29.067040+00:00"
+  "last_updated": "2026-06-14T02:44:42.543413+00:00"
 }
