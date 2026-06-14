@@ -7,7 +7,7 @@
     "Spain": 2030,
     "Portugal": 2000,
     "Germany": 1998.03,
-    "Netherlands": 1980,
+    "Netherlands": 1972.35,
     "Belgium": 1960,
     "Italy": 1950,
     "Croatia": 1930,
@@ -17,7 +17,7 @@
     "Mexico": 1883.35,
     "Colombia": 1860,
     "Senegal": 1850,
-    "Japan": 1840,
+    "Japan": 1847.65,
     "South Korea": 1836.02,
     "Ecuador": 1810,
     "Switzerland": 1797.14,
@@ -51,7 +51,8 @@
     537340,
     537345,
     537346,
-    537351
+    537351,
+    537357
   ],
   "match_log": [
     {
@@ -179,7 +180,21 @@
       "away_elo_after": 1742.0,
       "home_delta": 8.0,
       "away_delta": -8.0
+    },
+    {
+      "match_id": 537357,
+      "home": "Netherlands",
+      "away": "Japan",
+      "score": "2-2",
+      "stage": "GROUP_STAGE",
+      "utc_date": "2026-06-14T20:00:00Z",
+      "home_elo_before": 1980,
+      "away_elo_before": 1840,
+      "home_elo_after": 1972.4,
+      "away_elo_after": 1847.6,
+      "home_delta": -7.6,
+      "away_delta": 7.6
     }
   ],
-  "last_updated": "2026-06-14T19:10:51.263804+00:00"
+  "last_updated": "2026-06-14T22:03:22.788917+00:00"
 }
