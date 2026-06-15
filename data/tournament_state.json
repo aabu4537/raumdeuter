@@ -19,7 +19,7 @@
     "Senegal": 1850,
     "Japan": 1847.65,
     "South Korea": 1836.02,
-    "Ecuador": 1810,
+    "Ecuador": 1786.58,
     "Switzerland": 1797.14,
     "Austria": 1790,
     "Denmark": 1780,
@@ -40,7 +40,8 @@
     "Haiti": 1730.0,
     "Scotland": 1770.0,
     "Turkey": 1730.58,
-    "Cura\u00e7ao": 1741.97
+    "Cura\u00e7ao": 1741.97,
+    "Ivory Coast": 1773.42
   },
   "processed_match_ids": [
     537327,
@@ -52,6 +53,7 @@
     537345,
     537346,
     537351,
+    537352,
     537357
   ],
   "match_log": [
@@ -194,7 +196,21 @@
       "away_elo_after": 1847.6,
       "home_delta": -7.6,
       "away_delta": 7.6
+    },
+    {
+      "match_id": 537352,
+      "home": "Ivory Coast",
+      "away": "Ecuador",
+      "score": "1-0",
+      "stage": "GROUP_STAGE",
+      "utc_date": "2026-06-14T23:00:00Z",
+      "home_elo_before": 1750.0,
+      "away_elo_before": 1810,
+      "home_elo_after": 1773.4,
+      "away_elo_after": 1786.6,
+      "home_delta": 23.4,
+      "away_delta": -23.4
     }
   ],
-  "last_updated": "2026-06-14T22:03:22.788917+00:00"
+  "last_updated": "2026-06-15T02:49:11.051577+00:00"
 }
